@@ -5,6 +5,8 @@
 #include <databento/datetime.hpp>
 #include <databento/flag_set.hpp>
 #include <databento/historical.hpp>
+#include <databento/dbn_file_store.hpp>
+#include <databento/dbn.hpp>
 #include <sstream>
 #include <string>
 #include <cstring>
@@ -37,6 +39,15 @@ namespace jlcxx
   template<> struct IsBits<databento::Mbp10Msg> : std::true_type {};
   template<> struct IsBits<databento::InstrumentDefMsg> : std::true_type {};
   template<> struct IsBits<databento::ImbalanceMsg> : std::true_type {};
+  template<> struct IsBits<databento::StatusMsg> : std::true_type {};
+  template<> struct IsBits<databento::OhlcvMsg> : std::true_type {};
+  template<> struct IsBits<databento::StatMsg> : std::true_type {};
+  template<> struct IsBits<databento::ErrorMsg> : std::true_type {};
+  template<> struct IsBits<databento::SymbolMappingMsg> : std::true_type {};
+  template<> struct IsBits<databento::SystemMsg> : std::true_type {};
+  template<> struct IsBits<databento::BboMsg> : std::true_type {};
+  template<> struct IsBits<databento::Cmbp1Msg> : std::true_type {};
+  template<> struct IsBits<databento::CbboMsg> : std::true_type {};
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -491,5 +502,129 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
                                                 databento::SType stype_out,
                                                 const std::string& output_file) -> std::string {
       return client.TimeseriesGetRangeToFile(dataset, symbols, schema, start, end, stype_in, stype_out, output_file);
+    });
+
+  // ============================================================================
+  // PHASE 4: DBN Reader and Record Iteration
+  // ============================================================================
+
+  // Record - Universal record wrapper for type-safe access
+  mod.add_type<databento::Record>("Record")
+    .method("header", [](const databento::Record& r) -> const databento::RecordHeader& {
+      return r.Header();
+    })
+    .method("rtype", [](const databento::Record& r) -> databento::RType {
+      return r.RType();
+    })
+    .method("size", [](const databento::Record& r) -> std::size_t {
+      return r.Size();
+    })
+    // Type checking methods
+    .method("holds_mbo", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::MboMsg>();
+    })
+    .method("holds_trade", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::TradeMsg>();
+    })
+    .method("holds_mbp1", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::Mbp1Msg>();
+    })
+    .method("holds_mbp10", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::Mbp10Msg>();
+    })
+    .method("holds_ohlcv", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::OhlcvMsg>();
+    })
+    .method("holds_status", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::StatusMsg>();
+    })
+    .method("holds_instrument_def", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::InstrumentDefMsg>();
+    })
+    .method("holds_imbalance", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::ImbalanceMsg>();
+    })
+    .method("holds_stat", [](const databento::Record& r) -> bool {
+      return r.Holds<databento::StatMsg>();
+    })
+    // Safe casting methods (returns pointer, nullptr if wrong type)
+    .method("get_mbo_if", [](const databento::Record& r) -> const databento::MboMsg* {
+      return r.GetIf<databento::MboMsg>();
+    })
+    .method("get_trade_if", [](const databento::Record& r) -> const databento::TradeMsg* {
+      return r.GetIf<databento::TradeMsg>();
+    })
+    .method("get_mbp1_if", [](const databento::Record& r) -> const databento::Mbp1Msg* {
+      return r.GetIf<databento::Mbp1Msg>();
+    })
+    .method("get_mbp10_if", [](const databento::Record& r) -> const databento::Mbp10Msg* {
+      return r.GetIf<databento::Mbp10Msg>();
+    })
+    .method("get_ohlcv_if", [](const databento::Record& r) -> const databento::OhlcvMsg* {
+      return r.GetIf<databento::OhlcvMsg>();
+    })
+    .method("get_status_if", [](const databento::Record& r) -> const databento::StatusMsg* {
+      return r.GetIf<databento::StatusMsg>();
+    })
+    .method("get_instrument_def_if", [](const databento::Record& r) -> const databento::InstrumentDefMsg* {
+      return r.GetIf<databento::InstrumentDefMsg>();
+    })
+    .method("get_imbalance_if", [](const databento::Record& r) -> const databento::ImbalanceMsg* {
+      return r.GetIf<databento::ImbalanceMsg>();
+    })
+    .method("get_stat_if", [](const databento::Record& r) -> const databento::StatMsg* {
+      return r.GetIf<databento::StatMsg>();
+    });
+
+  // Metadata - DBN file metadata structure
+  mod.add_type<databento::Metadata>("Metadata")
+    .method("version", [](const databento::Metadata& m) -> std::uint8_t {
+      return m.version;
+    })
+    .method("dataset", [](const databento::Metadata& m) -> std::string {
+      return m.dataset;
+    })
+    .method("has_mixed_schema", [](const databento::Metadata& m) -> bool {
+      return m.has_mixed_schema;
+    })
+    .method("schema", [](const databento::Metadata& m) -> databento::Schema {
+      return m.schema;
+    })
+    .method("start", [](const databento::Metadata& m) -> std::uint64_t {
+      return m.start.time_since_epoch().count();
+    })
+    .method("end", [](const databento::Metadata& m) -> std::uint64_t {
+      return m.end.time_since_epoch().count();
+    })
+    .method("limit", [](const databento::Metadata& m) -> std::uint64_t {
+      return m.limit;
+    })
+    .method("stype_in", [](const databento::Metadata& m) -> databento::SType {
+      return m.stype_in;
+    })
+    .method("stype_out", [](const databento::Metadata& m) -> databento::SType {
+      return m.stype_out;
+    })
+    .method("ts_out", [](const databento::Metadata& m) -> bool {
+      return m.ts_out;
+    })
+    .method("symbols", [](const databento::Metadata& m) -> std::vector<std::string> {
+      return m.symbols;
+    })
+    .method("partial", [](const databento::Metadata& m) -> std::vector<std::string> {
+      return m.partial;
+    })
+    .method("not_found", [](const databento::Metadata& m) -> std::vector<std::string> {
+      return m.not_found;
+    });
+
+  // DbnFileStore - Main class for reading DBN files
+  mod.add_type<databento::DbnFileStore>("DbnFileStore")
+    .constructor<const std::string&>()
+    .method("get_metadata", [](databento::DbnFileStore& store) -> const databento::Metadata& {
+      return store.GetMetadata();
+    })
+    .method("next_record", [](databento::DbnFileStore& store) -> const databento::Record* {
+      return store.NextRecord();
     });
 }
