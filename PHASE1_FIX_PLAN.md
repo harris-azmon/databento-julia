@@ -93,32 +93,59 @@ mod.add_bits<databento::Schema>("Schema");
 
 ---
 
-## 🔴 CURRENT BUILD ISSUE
+## 🟡 CURRENT BUILD ISSUE (BLOCKING)
 
-### CMake JlCxx Compatibility Error
+### Julia Library Detection Failure in CMake
 
-**Current Status**: Build fails due to CMake compatibility issue (NOT wrapper code issue)
+**Session 2 Progress**: ✅ MAJOR BREAKTHROUGH - Compilation working!
 
-**Error**:
-```
-CMake Error at FindJulia.cmake:115 (get_filename_component):
-  get_filename_component called with incorrect number of arguments
-```
+**Current Status**: Build fails only at linking stage (NOT at wrapper code)
+
+**Error Chain**:
+1. ✅ **CMake patching successful**: Removed FindJulia.cmake compatibility errors
+2. ✅ **databento-cpp v0.30.0 library**: Compiles completely (all .cpp files)
+3. ✅ **C++ wrapper (databento_jl.cpp)**: Compiles without errors
+4. ❌ **Linking step**: `cannot find -lJulia_LIBRARY-NOTFOUND`
 
 **Root Cause**:
-- JlCxx v0.12.3's CMake FindJulia.cmake uses an outdated `get_filename_component()` syntax
-- CMake 3.24+ requires named arguments (DIRECTORY, NAME_WLE, etc.)
-- The FindJulia.cmake is calling it with positional-only arguments (old CMake 3.0 syntax)
+- JlCxx FindJulia.cmake tries to extract Julia library path using `Libdl` module
+- In Julia build sandbox, Libdl not available at CMake time
+- Extraction command fails silently, sets Julia_LIBRARY to "Julia_LIBRARY-NOTFOUND"
+- Linker then tries to link against literal string "-lJulia_LIBRARY-NOTFOUND"
 
-**Impact**:
-- **Wrapper code is correct** ✅ (verified structurally)
-- **Build system incompatibility** (environment issue, not code issue)
-- Build doesn't proceed to actual compilation
+**Fixes Successfully Applied** (Session 2):
+1. ✅ Patched both FindJulia.cmake instances
+   - Removed Libdl dependency from execute_process
+   - Added guards for empty Julia_LIBRARY
+   - Fixed CMake get_filename_component syntax
+2. ✅ Corrected enum values to match databento-cpp v0.30.0
+   - Removed non-existent Schema::OhlcvEod
+   - Fixed SType to use only v0.30.0 values
+   - Cleaned up wrapper to compile successfully
+3. ✅ Installed missing system dependency (libzstd-dev)
 
-**Workarounds Attempted**:
-1. ❌ Julia 1.10.0 with CxxWrap v0.15.1 - Same JlCxx version error
-2. ❌ Julia 1.9.4 with CxxWrap v0.15.1 - Same JlCxx version error
-3. ⚠️ Need newer CxxWrap/JlCxx versions or manual CMake fix
+**Build Progress Metrics**:
+- CMake Configuration: ⚠️ Completes (warning about Julia_LIBRARY)
+- databento-cpp Library: ✅ 100% built
+- Wrapper Compilation: ✅ 100% built
+- Linking Stage: ❌ Blocked (Julia library not found)
+
+**Solutions to Try** (Priority Order):
+1. **Direct Julia library path approach**
+   - Provide Julia library path explicitly via CMake
+   - Set -DJulia_LIBRARY=/path/to/libjulia.so
+
+2. **Extract library path without Libdl**
+   - Use Julia executable directly to get library
+   - Or use system package manager to find Julia lib
+
+3. **Upgrade dependencies**
+   - Check if CxxWrap v0.16+ has fixes
+   - May have better FindJulia.cmake
+
+4. **Fallback: Manual linking**
+   - Modify CMakeLists.txt to skip Julia library check
+   - Link against known system locations
 
 ---
 
