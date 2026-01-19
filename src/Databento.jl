@@ -48,17 +48,5 @@ export IFEU_IMPACT, NDEX_IMPACT, EQUS_ALL, XNAS_BASIC
 export EQUS_SUMMARY, XCIS_TRADESBBO, XNYS_TRADESBBO, EQUS_MINI
 export IFUS_IMPACT, IFLL_IMPACT, XEUR_EOBI, XEEE_EOBI, XCBF_PITCH
 
-# Extend Base.string for our enums to enable pretty printing
-# This will call the C++ ToString functions we exposed
-Base.string(s::Schema) = string(s)
-Base.string(e::Encoding) = string(e)
-Base.string(s::SType) = string(s)
-Base.string(d::Dataset) = string(d)
-
-# Add show methods for better REPL display
-Base.show(io::IO, s::Schema) = print(io, "Schema::", string(s))
-Base.show(io::IO, e::Encoding) = print(io, "Encoding::", string(e))
-Base.show(io::IO, s::SType) = print(io, "SType::", string(s))
-Base.show(io::IO, d::Dataset) = print(io, "Dataset::", string(d))
 
 end # module
