@@ -22,7 +22,7 @@ end
 # ============================================================================
 
 # Export enum types
-export Schema, Encoding, SType, Dataset
+export Schema, Encoding, SType, RType, Action, Side, Dataset
 
 # Export Schema constants
 export MBO, MBP1, MBP10, TBBO, TRADES
@@ -37,6 +37,21 @@ export DBN, CSV, JSON
 export INSTRUMENT_ID, RAW_SYMBOL, SMART, CONTINUOUS, PARENT
 export NASDAQ_SYMBOL, CMS_SYMBOL, ISIN, US_CODE
 export BBG_COMP_ID, BBG_COMP_TICKER, FIGI, FIGI_TICKER
+
+# Export RType constants
+export RTYPE_MBP0, RTYPE_MBP1, RTYPE_MBP10
+export RTYPE_OHLCV_1S, RTYPE_OHLCV_1M, RTYPE_OHLCV_1H, RTYPE_OHLCV_1D
+export RTYPE_STATUS, RTYPE_INSTRUMENT_DEF, RTYPE_IMBALANCE, RTYPE_ERROR
+export RTYPE_SYMBOL_MAPPING, RTYPE_SYSTEM, RTYPE_STATISTICS
+export RTYPE_MBO, RTYPE_CMBP1, RTYPE_CBBO_1S, RTYPE_CBBO_1M
+export RTYPE_TCBBO, RTYPE_BBO_1S, RTYPE_BBO_1M
+
+# Export Action constants
+export ACTION_MODIFY, ACTION_TRADE, ACTION_FILL, ACTION_CANCEL
+export ACTION_ADD, ACTION_CLEAR, ACTION_NONE
+
+# Export Side constants
+export SIDE_ASK, SIDE_BID, SIDE_NONE
 
 # Export Dataset constants
 export GLBX_MDP3, XNAS_ITCH, XBOS_ITCH, XPSX_ITCH
