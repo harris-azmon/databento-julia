@@ -13,6 +13,7 @@ namespace jlcxx {
 
   // Message types - NOT mirrored, use add_type with methods instead
   // This allows CxxWrap to marshal complex types with chrono members
+  template<> struct IsMirroredType<databento::BidAskPair> : std::false_type {};
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -99,6 +100,51 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.set_const("SIDE_NONE", databento::Side::None);
 
   // ============================================================================
+  // PHASE 3: Status & Status-related Enums
+  // ============================================================================
+
+  // StatusAction Enum - Trading status action
+  mod.add_bits<databento::StatusAction>("StatusAction");
+  mod.set_const("STATUS_ACTION_NONE", databento::StatusAction::None);
+  mod.set_const("STATUS_ACTION_PRE_OPEN", databento::StatusAction::PreOpen);
+  mod.set_const("STATUS_ACTION_PRE_CROSS", databento::StatusAction::PreCross);
+  mod.set_const("STATUS_ACTION_QUOTING", databento::StatusAction::Quoting);
+  mod.set_const("STATUS_ACTION_CROSS", databento::StatusAction::Cross);
+  mod.set_const("STATUS_ACTION_ROTATION", databento::StatusAction::Rotation);
+  mod.set_const("STATUS_ACTION_NEW_PRICE_INDICATION", databento::StatusAction::NewPriceIndication);
+  mod.set_const("STATUS_ACTION_TRADING", databento::StatusAction::Trading);
+  mod.set_const("STATUS_ACTION_HALT", databento::StatusAction::Halt);
+  mod.set_const("STATUS_ACTION_PAUSE", databento::StatusAction::Pause);
+  mod.set_const("STATUS_ACTION_SUSPEND", databento::StatusAction::Suspend);
+  mod.set_const("STATUS_ACTION_PRE_CLOSE", databento::StatusAction::PreClose);
+  mod.set_const("STATUS_ACTION_CLOSE", databento::StatusAction::Close);
+  mod.set_const("STATUS_ACTION_POST_CLOSE", databento::StatusAction::PostClose);
+  mod.set_const("STATUS_ACTION_SSR_CHANGE", databento::StatusAction::SsrChange);
+  mod.set_const("STATUS_ACTION_NOT_AVAILABLE", databento::StatusAction::NotAvailableForTrading);
+
+  // StatusReason Enum - Reason for status change
+  mod.add_bits<databento::StatusReason>("StatusReason");
+  mod.set_const("STATUS_REASON_NONE", databento::StatusReason::None);
+  mod.set_const("STATUS_REASON_SCHEDULED", databento::StatusReason::Scheduled);
+  mod.set_const("STATUS_REASON_SURVEILLANCE", databento::StatusReason::SurveillanceIntervention);
+  mod.set_const("STATUS_REASON_MARKET_EVENT", databento::StatusReason::MarketEvent);
+  mod.set_const("STATUS_REASON_INSTRUMENT_ACTIVATION", databento::StatusReason::InstrumentActivation);
+
+  // TradingEvent Enum - Market trading event
+  mod.add_bits<databento::TradingEvent>("TradingEvent");
+  mod.set_const("TRADING_EVENT_NONE", databento::TradingEvent::None);
+  mod.set_const("TRADING_EVENT_NO_CANCEL", databento::TradingEvent::NoCancel);
+  mod.set_const("TRADING_EVENT_CHANGE_SESSION", databento::TradingEvent::ChangeTradingSession);
+  mod.set_const("TRADING_EVENT_IMPLIED_MATCHING_ON", databento::TradingEvent::ImpliedMatchingOn);
+  mod.set_const("TRADING_EVENT_IMPLIED_MATCHING_OFF", databento::TradingEvent::ImpliedMatchingOff);
+
+  // TriState Enum - Three-state boolean
+  mod.add_bits<databento::TriState>("TriState");
+  mod.set_const("TRISTATE_YES", databento::TriState::Yes);
+  mod.set_const("TRISTATE_NO", databento::TriState::No);
+  mod.set_const("TRISTATE_NOT_AVAILABLE", databento::TriState::NotAvailable);
+
+  // ============================================================================
   // PHASE 2: Market Data Message Types
   // ============================================================================
 
@@ -167,4 +213,66 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.method("stat_type", [](const databento::StatMsg& msg) { return static_cast<uint8_t>(msg.stat_type); });
   mod.method("channel_id", [](const databento::StatMsg& msg) { return msg.channel_id; });
   mod.method("update_action", [](const databento::StatMsg& msg) { return static_cast<uint8_t>(msg.update_action); });
+
+  // ============================================================================
+  // PHASE 3: Market-by-Price Message Types with Bid/Ask Levels
+  // ============================================================================
+
+  // BidAskPair - Bid/Ask level data (used in Mbp1, Mbp10, etc.)
+  mod.add_type<databento::BidAskPair>("BidAskPair");
+  mod.method("bid_px", [](const databento::BidAskPair& level) { return level.bid_px; });
+  mod.method("ask_px", [](const databento::BidAskPair& level) { return level.ask_px; });
+  mod.method("bid_sz", [](const databento::BidAskPair& level) { return level.bid_sz; });
+  mod.method("ask_sz", [](const databento::BidAskPair& level) { return level.ask_sz; });
+  mod.method("bid_ct", [](const databento::BidAskPair& level) { return level.bid_ct; });
+  mod.method("ask_ct", [](const databento::BidAskPair& level) { return level.ask_ct; });
+
+  // Mbp1Msg - Market-by-price level 1 (with 1 bid/ask level)
+  mod.add_type<databento::Mbp1Msg>("Mbp1Msg");
+  mod.method("price", [](const databento::Mbp1Msg& msg) { return msg.price; });
+  mod.method("size", [](const databento::Mbp1Msg& msg) { return msg.size; });
+  mod.method("action", [](const databento::Mbp1Msg& msg) { return msg.action; });
+  mod.method("side", [](const databento::Mbp1Msg& msg) { return msg.side; });
+  mod.method("depth", [](const databento::Mbp1Msg& msg) { return msg.depth; });
+  mod.method("ts_recv", [](const databento::Mbp1Msg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ts_in_delta", [](const databento::Mbp1Msg& msg) { return msg.ts_in_delta.count(); });
+  mod.method("sequence", [](const databento::Mbp1Msg& msg) { return msg.sequence; });
+  // Level 0 accessors (Mbp1 has 1 level)
+  mod.method("level_0_bid_px", [](const databento::Mbp1Msg& msg) { return msg.levels[0].bid_px; });
+  mod.method("level_0_ask_px", [](const databento::Mbp1Msg& msg) { return msg.levels[0].ask_px; });
+  mod.method("level_0_bid_sz", [](const databento::Mbp1Msg& msg) { return msg.levels[0].bid_sz; });
+  mod.method("level_0_ask_sz", [](const databento::Mbp1Msg& msg) { return msg.levels[0].ask_sz; });
+  mod.method("level_0_bid_ct", [](const databento::Mbp1Msg& msg) { return msg.levels[0].bid_ct; });
+  mod.method("level_0_ask_ct", [](const databento::Mbp1Msg& msg) { return msg.levels[0].ask_ct; });
+
+  // Mbp10Msg - Market-by-price level 10 (with 10 bid/ask levels)
+  mod.add_type<databento::Mbp10Msg>("Mbp10Msg");
+  mod.method("price", [](const databento::Mbp10Msg& msg) { return msg.price; });
+  mod.method("size", [](const databento::Mbp10Msg& msg) { return msg.size; });
+  mod.method("action", [](const databento::Mbp10Msg& msg) { return msg.action; });
+  mod.method("side", [](const databento::Mbp10Msg& msg) { return msg.side; });
+  mod.method("depth", [](const databento::Mbp10Msg& msg) { return msg.depth; });
+  mod.method("ts_recv", [](const databento::Mbp10Msg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ts_in_delta", [](const databento::Mbp10Msg& msg) { return msg.ts_in_delta.count(); });
+  mod.method("sequence", [](const databento::Mbp10Msg& msg) { return msg.sequence; });
+  // Level accessors for all 10 levels
+  for (int i = 0; i < 10; ++i) {
+    std::string level_num = std::to_string(i);
+    mod.method("level_" + level_num + "_bid_px", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].bid_px; });
+    mod.method("level_" + level_num + "_ask_px", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].ask_px; });
+    mod.method("level_" + level_num + "_bid_sz", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].bid_sz; });
+    mod.method("level_" + level_num + "_ask_sz", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].ask_sz; });
+    mod.method("level_" + level_num + "_bid_ct", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].bid_ct; });
+    mod.method("level_" + level_num + "_ask_ct", [i](const databento::Mbp10Msg& msg) { return msg.levels[i].ask_ct; });
+  }
+
+  // StatusMsg - Trading status message
+  mod.add_type<databento::StatusMsg>("StatusMsg");
+  mod.method("ts_recv", [](const databento::StatusMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("action", [](const databento::StatusMsg& msg) { return msg.action; });
+  mod.method("reason", [](const databento::StatusMsg& msg) { return msg.reason; });
+  mod.method("trading_event", [](const databento::StatusMsg& msg) { return msg.trading_event; });
+  mod.method("is_trading", [](const databento::StatusMsg& msg) { return msg.is_trading; });
+  mod.method("is_quoting", [](const databento::StatusMsg& msg) { return msg.is_quoting; });
+  mod.method("is_short_sell_restricted", [](const databento::StatusMsg& msg) { return msg.is_short_sell_restricted; });
 }

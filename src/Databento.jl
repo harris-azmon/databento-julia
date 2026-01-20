@@ -78,4 +78,30 @@ export MboMsg, TradeMsg
 # Export additional message types
 export OhlcvMsg, ImbalanceMsg, StatMsg
 
+# ============================================================================
+# PHASE 3: Status and Market-by-Price Types
+# ============================================================================
+
+# Export new enum types for Phase 3
+export StatusAction, StatusReason, TradingEvent, TriState
+
+# Export related constants
+export STATUS_ACTION_NONE, STATUS_ACTION_PRE_OPEN, STATUS_ACTION_PRE_CROSS
+export STATUS_ACTION_QUOTING, STATUS_ACTION_CROSS, STATUS_ACTION_ROTATION
+export STATUS_ACTION_NEW_PRICE_INDICATION, STATUS_ACTION_TRADING, STATUS_ACTION_HALT
+export STATUS_ACTION_PAUSE, STATUS_ACTION_SUSPEND, STATUS_ACTION_PRE_CLOSE
+export STATUS_ACTION_CLOSE, STATUS_ACTION_POST_CLOSE, STATUS_ACTION_SSR_CHANGE
+export STATUS_ACTION_NOT_AVAILABLE
+
+export STATUS_REASON_NONE, STATUS_REASON_SCHEDULED, STATUS_REASON_SURVEILLANCE
+export STATUS_REASON_MARKET_EVENT, STATUS_REASON_INSTRUMENT_ACTIVATION
+
+export TRADING_EVENT_NONE, TRADING_EVENT_NO_CANCEL, TRADING_EVENT_CHANGE_SESSION
+export TRADING_EVENT_IMPLIED_MATCHING_ON, TRADING_EVENT_IMPLIED_MATCHING_OFF
+
+export TRISTATE_YES, TRISTATE_NO, TRISTATE_NOT_AVAILABLE
+
+# Export message types with bid/ask levels
+export BidAskPair, Mbp1Msg, Mbp10Msg, StatusMsg
+
 end # module
