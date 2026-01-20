@@ -3,7 +3,9 @@
 #include <databento/record.hpp>
 #include <databento/datetime.hpp>
 #include <databento/flag_set.hpp>
+#include <databento/historical.hpp>
 #include <cstring>
+#include <vector>
 
 // ============================================================================
 // IsBits Template Specializations for Zero-Copy Access
@@ -34,6 +36,21 @@ namespace jlcxx {
   template<> struct IsBits<databento::Mbp10Msg> : std::true_type {};
   template<> struct IsBits<databento::InstrumentDefMsg> : std::true_type {};
   template<> struct IsBits<databento::ImbalanceMsg> : std::true_type {};
+
+  // Phase 4 Additional Message Types
+  template<> struct IsBits<databento::StatusMsg> : std::true_type {};
+  template<> struct IsBits<databento::OhlcvMsg> : std::true_type {};
+  template<> struct IsBits<databento::StatMsg> : std::true_type {};
+  template<> struct IsBits<databento::ErrorMsg> : std::true_type {};
+  template<> struct IsBits<databento::SymbolMappingMsg> : std::true_type {};
+  template<> struct IsBits<databento::SystemMsg> : std::true_type {};
+  template<> struct IsBits<databento::BboMsg> : std::true_type {};
+  template<> struct IsBits<databento::Cmbp1Msg> : std::true_type {};
+  template<> struct IsBits<databento::CbboMsg> : std::true_type {};
+
+  // Phase 4 File Reader Types
+  template<> struct IsBits<databento::Metadata> : std::true_type {};
+  template<> struct IsBits<databento::Record> : std::true_type {};
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -323,4 +340,104 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.method("unpaired_side", [](const databento::ImbalanceMsg& m) { return m.unpaired_side; });
   mod.method("significant_imbalance", [](const databento::ImbalanceMsg& m) { return m.significant_imbalance; });
   mod.method("index_ts", &databento::ImbalanceMsg::IndexTs);
+
+  // ============================================================================
+  // PHASE 3: Historical Client
+  // ============================================================================
+
+  // HistoricalBuilder - Builder pattern for constructing Historical client
+  mod.add_type<databento::HistoricalBuilder>("HistoricalBuilder")
+    .constructor<>()
+    .method("set_key!", [](databento::HistoricalBuilder& builder, const std::string& key) -> databento::HistoricalBuilder& {
+      return builder.SetKey(key);
+    })
+    .method("set_key_from_env!", [](databento::HistoricalBuilder& builder) -> databento::HistoricalBuilder& {
+      return builder.SetKeyFromEnv();
+    })
+    .method("build", [](databento::HistoricalBuilder& builder) -> databento::Historical {
+      return builder.Build();
+    });
+
+  // Historical - Main client for historical data access
+  mod.add_type<databento::Historical>("Historical")
+    .method("metadata_list_datasets", [](databento::Historical& client) -> std::vector<std::string> {
+      return client.MetadataListDatasets();
+    })
+    .method("metadata_list_schemas", [](databento::Historical& client, const std::string& dataset) -> std::vector<std::string> {
+      return client.MetadataListSchemas(dataset);
+    })
+    .method("metadata_list_fields", [](databento::Historical& client, databento::Encoding encoding, databento::Schema schema) -> std::vector<std::string> {
+      return client.MetadataListFields(encoding, schema);
+    })
+    .method("symbology_resolve", [](databento::Historical& client,
+                                     const std::string& dataset,
+                                     const std::vector<std::string>& symbols,
+                                     databento::SType stype_in,
+                                     const std::string& date) -> std::string {
+      return client.SymbologyResolve(dataset, symbols, stype_in, date);
+    })
+    .method("timeseries_get_range_to_file", [](databento::Historical& client,
+                                                const std::string& dataset,
+                                                const std::vector<std::string>& symbols,
+                                                databento::Schema schema,
+                                                const std::string& start,
+                                                const std::string& end,
+                                                databento::SType stype_in,
+                                                databento::SType stype_out,
+                                                const std::string& output_file) -> std::string {
+      return client.TimeseriesGetRangeToFile(dataset, symbols, schema, start, end, stype_in, stype_out, output_file);
+    });
+
+  // ============================================================================
+  // PHASE 4: DBN File Reader
+  // ============================================================================
+
+  // Metadata - DBN file metadata
+  mod.add_bits<databento::Metadata>("Metadata");
+  mod.method("version", [](const databento::Metadata& m) { return m.version; });
+  mod.method("dataset", [](const databento::Metadata& m) { return std::string(m.dataset.data()); });
+  mod.method("schema", [](const databento::Metadata& m) { return m.schema; });
+  mod.method("start", [](const databento::Metadata& m) { return m.start; });
+  mod.method("end", [](const databento::Metadata& m) { return m.end; });
+  mod.method("limit", [](const databento::Metadata& m) { return m.limit; });
+  mod.method("stype_in", [](const databento::Metadata& m) { return m.stype_in; });
+  mod.method("stype_out", [](const databento::Metadata& m) { return m.stype_out; });
+  mod.method("ts_out", [](const databento::Metadata& m) { return m.ts_out; });
+  mod.method("symbols", [](const databento::Metadata& m) { return m.symbols; });
+  mod.method("partial", [](const databento::Metadata& m) { return m.partial; });
+  mod.method("not_found", [](const databento::Metadata& m) { return m.not_found; });
+
+  // Record - Universal record wrapper with type checking
+  mod.add_bits<databento::Record>("Record");
+  mod.method("header", [](const databento::Record& r) { return r.Header(); });
+  mod.method("rtype", [](const databento::Record& r) { return r.RType(); });
+  mod.method("size", [](const databento::Record& r) { return r.Size(); });
+  mod.method("holds_mbo", [](const databento::Record& r) { return r.Holds<databento::MboMsg>(); });
+  mod.method("holds_trade", [](const databento::Record& r) { return r.Holds<databento::TradeMsg>(); });
+  mod.method("holds_mbp1", [](const databento::Record& r) { return r.Holds<databento::Mbp1Msg>(); });
+  mod.method("holds_mbp10", [](const databento::Record& r) { return r.Holds<databento::Mbp10Msg>(); });
+  mod.method("holds_ohlcv", [](const databento::Record& r) { return r.Holds<databento::OhlcvMsg>(); });
+  mod.method("holds_status", [](const databento::Record& r) { return r.Holds<databento::StatusMsg>(); });
+  mod.method("holds_instrument_def", [](const databento::Record& r) { return r.Holds<databento::InstrumentDefMsg>(); });
+  mod.method("holds_imbalance", [](const databento::Record& r) { return r.Holds<databento::ImbalanceMsg>(); });
+  mod.method("holds_stat", [](const databento::Record& r) { return r.Holds<databento::StatMsg>(); });
+  mod.method("get_mbo_if", [](const databento::Record& r) { return r.GetIf<databento::MboMsg>(); });
+  mod.method("get_trade_if", [](const databento::Record& r) { return r.GetIf<databento::TradeMsg>(); });
+  mod.method("get_mbp1_if", [](const databento::Record& r) { return r.GetIf<databento::Mbp1Msg>(); });
+  mod.method("get_mbp10_if", [](const databento::Record& r) { return r.GetIf<databento::Mbp10Msg>(); });
+  mod.method("get_ohlcv_if", [](const databento::Record& r) { return r.GetIf<databento::OhlcvMsg>(); });
+  mod.method("get_status_if", [](const databento::Record& r) { return r.GetIf<databento::StatusMsg>(); });
+  mod.method("get_instrument_def_if", [](const databento::Record& r) { return r.GetIf<databento::InstrumentDefMsg>(); });
+  mod.method("get_imbalance_if", [](const databento::Record& r) { return r.GetIf<databento::ImbalanceMsg>(); });
+  mod.method("get_stat_if", [](const databento::Record& r) { return r.GetIf<databento::StatMsg>(); });
+
+  // DbnFileStore - Main file reader
+  mod.add_type<databento::DbnFileStore>("DbnFileStore")
+    .constructor<const std::string&>()
+    .method("get_metadata", [](databento::DbnFileStore& store) -> const databento::Metadata& {
+      return store.GetMetadata();
+    })
+    .method("next_record", [](databento::DbnFileStore& store) -> databento::Record {
+      return store.NextRecord();
+    });
 }
