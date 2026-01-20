@@ -4,8 +4,18 @@
 #include <databento/datetime.hpp>
 #include <databento/flag_set.hpp>
 #include <databento/historical.hpp>
+#include <databento/live.hpp>
+#include <databento/live_blocking.hpp>
+#include <databento/live_threaded.hpp>
+#include <databento/live_subscription.hpp>
+#include <databento/batch.hpp>
+#include <databento/symbology.hpp>
 #include <cstring>
 #include <vector>
+#include <functional>
+#include <optional>
+#include <chrono>
+#include <unordered_map>
 
 // ============================================================================
 // IsBits Template Specializations for Zero-Copy Access
@@ -51,6 +61,17 @@ namespace jlcxx {
   // Phase 4 File Reader Types
   template<> struct IsBits<databento::Metadata> : std::true_type {};
   template<> struct IsBits<databento::Record> : std::true_type {};
+
+  // Phase 5 Live Streaming
+  template<> struct IsBits<databento::LiveSubscription> : std::true_type {};
+
+  // Phase 6 Batch/Metadata
+  template<> struct IsBits<databento::BatchJob> : std::true_type {};
+  template<> struct IsBits<databento::BatchFileDesc> : std::true_type {};
+  template<> struct IsBits<databento::PublisherDetail> : std::true_type {};
+  template<> struct IsBits<databento::FieldDetail> : std::true_type {};
+  template<> struct IsBits<databento::DatasetRange> : std::true_type {};
+  template<> struct IsBits<databento::DatasetConditionDetail> : std::true_type {};
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -439,5 +460,432 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
     })
     .method("next_record", [](databento::DbnFileStore& store) -> databento::Record {
       return store.NextRecord();
+    });
+
+  // ============================================================================
+  // PHASE 5: Live Streaming API
+  // ============================================================================
+
+  // LiveSubscription - Subscription specification
+  mod.add_bits<databento::LiveSubscription>("LiveSubscription");
+  mod.method("set_symbols!", [](databento::LiveSubscription& sub,
+                                 const std::vector<std::string>& symbols) -> databento::LiveSubscription& {
+    sub.symbols = symbols;
+    return sub;
+  });
+  mod.method("set_schema!", [](databento::LiveSubscription& sub,
+                                databento::Schema schema) -> databento::LiveSubscription& {
+    sub.schema = schema;
+    return sub;
+  });
+  mod.method("set_stype!", [](databento::LiveSubscription& sub,
+                               databento::SType stype) -> databento::LiveSubscription& {
+    sub.stype_in = stype;
+    return sub;
+  });
+  mod.method("symbols", [](const databento::LiveSubscription& sub) {
+    return sub.symbols;
+  });
+  mod.method("schema", [](const databento::LiveSubscription& sub) {
+    return sub.schema;
+  });
+  mod.method("stype_in", [](const databento::LiveSubscription& sub) {
+    return sub.stype_in;
+  });
+
+  // LiveBuilder - Builder pattern for Live clients
+  mod.add_type<databento::LiveBuilder>("LiveBuilder")
+    .constructor<>()
+    .method("set_key!", [](databento::LiveBuilder& builder,
+                           const std::string& key) -> databento::LiveBuilder& {
+      return builder.SetKey(key);
+    })
+    .method("set_key_from_env!", [](databento::LiveBuilder& builder) -> databento::LiveBuilder& {
+      return builder.SetKeyFromEnv();
+    })
+    .method("set_dataset!", [](databento::LiveBuilder& builder,
+                               const std::string& dataset) -> databento::LiveBuilder& {
+      return builder.SetDataset(dataset);
+    })
+    .method("set_send_ts_out!", [](databento::LiveBuilder& builder,
+                                   bool send) -> databento::LiveBuilder& {
+      return builder.SetSendTsOut(send);
+    })
+    .method("set_heartbeat_interval!", [](databento::LiveBuilder& builder,
+                                         uint64_t interval_ms) -> databento::LiveBuilder& {
+      return builder.SetHeartbeatInterval(std::chrono::milliseconds(interval_ms));
+    })
+    .method("build_blocking", [](databento::LiveBuilder& builder) -> databento::LiveBlocking {
+      return builder.BuildBlocking();
+    })
+    .method("build_threaded", [](databento::LiveBuilder& builder) -> databento::LiveThreaded {
+      return builder.BuildThreaded();
+    });
+
+  // LiveBlocking - Blocking/polling real-time API
+  mod.add_type<databento::LiveBlocking>("LiveBlocking")
+    .constructor<>()
+    .method("subscribe!", [](databento::LiveBlocking& live,
+                             const databento::LiveSubscription& sub) {
+      live.Subscribe(sub);
+      return std::ref(live);
+    })
+    .method("start!", [](databento::LiveBlocking& live) {
+      live.Start();
+      return std::ref(live);
+    })
+    .method("stop!", [](databento::LiveBlocking& live) {
+      live.Stop();
+      return std::ref(live);
+    })
+    .method("reconnect!", [](databento::LiveBlocking& live) {
+      live.Reconnect();
+      return std::ref(live);
+    })
+    .method("next_record", [](databento::LiveBlocking& live) -> databento::Record {
+      return live.NextRecord();
+    })
+    .method("next_record_timeout", [](databento::LiveBlocking& live,
+                                      uint64_t timeout_ms) -> std::optional<databento::Record> {
+      auto result = live.NextRecord(std::chrono::milliseconds(timeout_ms));
+      if (result) return *result;
+      return std::nullopt;
+    })
+    .method("is_subscribed", [](const databento::LiveBlocking& live) {
+      return !live.Subscriptions().empty();
+    });
+
+  // LiveThreaded - Event-driven threaded real-time API
+  mod.add_type<databento::LiveThreaded>("LiveThreaded")
+    .constructor<>()
+    .method("subscribe!", [](databento::LiveThreaded& live,
+                             const databento::LiveSubscription& sub) {
+      live.Subscribe(sub);
+      return std::ref(live);
+    })
+    .method("on_record", [](databento::LiveThreaded& live,
+                            std::function<databento::KeepGoing(const databento::Record&)> cb) {
+      live.Start(cb);
+    })
+    .method("on_record_and_metadata", [](databento::LiveThreaded& live,
+                                         std::function<databento::KeepGoing(const databento::Record&)> rec_cb,
+                                         std::function<void(databento::Metadata&&)> meta_cb) {
+      live.Start(rec_cb, meta_cb);
+    })
+    .method("start!", [](databento::LiveThreaded& live) {
+      return std::ref(live);
+    })
+    .method("block_for_stop", [](databento::LiveThreaded& live) {
+      live.BlockForStop();
+    })
+    .method("block_for_stop_timeout", [](databento::LiveThreaded& live,
+                                         uint64_t timeout_ms) -> bool {
+      return live.BlockForStop(std::chrono::milliseconds(timeout_ms));
+    });
+
+  // ============================================================================
+  // PHASE 6: Historical/Batch API
+  // ============================================================================
+
+  // PublisherDetail - Publisher metadata
+  mod.add_bits<databento::PublisherDetail>("PublisherDetail");
+  mod.method("publisher_id", [](const databento::PublisherDetail& p) {
+    return p.publisher_id;
+  });
+  mod.method("dataset", [](const databento::PublisherDetail& p) {
+    return std::string(p.dataset.data());
+  });
+  mod.method("venue", [](const databento::PublisherDetail& p) {
+    return std::string(p.venue.data());
+  });
+  mod.method("description", [](const databento::PublisherDetail& p) {
+    return std::string(p.description.data());
+  });
+
+  // FieldDetail - Record field metadata
+  mod.add_bits<databento::FieldDetail>("FieldDetail");
+  mod.method("name", [](const databento::FieldDetail& f) {
+    return std::string(f.name.data());
+  });
+  mod.method("type", [](const databento::FieldDetail& f) {
+    return std::string(f.type.data());
+  });
+
+  // DatasetRange - Date range availability
+  mod.add_bits<databento::DatasetRange>("DatasetRange");
+  mod.method("start_date", [](const databento::DatasetRange& r) {
+    return std::string(r.start_date.data());
+  });
+  mod.method("end_date", [](const databento::DatasetRange& r) {
+    return std::string(r.end_date.data());
+  });
+
+  // DatasetConditionDetail - Dataset quality metadata
+  mod.add_bits<databento::DatasetConditionDetail>("DatasetConditionDetail");
+  mod.method("date", [](const databento::DatasetConditionDetail& d) {
+    return std::string(d.date.data());
+  });
+  mod.method("condition", [](const databento::DatasetConditionDetail& d) {
+    return std::string(d.condition.data());
+  });
+  mod.method("last_modified_date", [](const databento::DatasetConditionDetail& d) {
+    return std::string(d.last_modified_date.data());
+  });
+
+  // BatchFileDesc - File metadata within batch job
+  mod.add_bits<databento::BatchFileDesc>("BatchFileDesc");
+  mod.method("filename", [](const databento::BatchFileDesc& desc) {
+    return std::string(desc.filename.data());
+  });
+  mod.method("size", [](const databento::BatchFileDesc& desc) {
+    return desc.size;
+  });
+  mod.method("hash", [](const databento::BatchFileDesc& desc) {
+    return std::string(desc.hash.data());
+  });
+  mod.method("https_url", [](const databento::BatchFileDesc& desc) {
+    return std::string(desc.https_url.data());
+  });
+  mod.method("ftp_url", [](const databento::BatchFileDesc& desc) {
+    return std::string(desc.ftp_url.data());
+  });
+
+  // BatchJob - Batch job metadata and status
+  mod.add_bits<databento::BatchJob>("BatchJob");
+  mod.method("id", [](const databento::BatchJob& job) { return job.id; });
+  mod.method("user_id", [](const databento::BatchJob& job) { return job.user_id; });
+  mod.method("bill_id", [](const databento::BatchJob& job) { return job.bill_id; });
+  mod.method("cost_usd", [](const databento::BatchJob& job) { return job.cost_usd; });
+  mod.method("dataset", [](const databento::BatchJob& job) { return std::string(job.dataset.data()); });
+  mod.method("state", [](const databento::BatchJob& job) { return std::string(job.state.data()); });
+  mod.method("schema", [](const databento::BatchJob& job) { return job.schema; });
+  mod.method("encoding", [](const databento::BatchJob& job) { return job.encoding; });
+  mod.method("compression", [](const databento::BatchJob& job) { return job.compression; });
+  mod.method("stype_in", [](const databento::BatchJob& job) { return job.stype_in; });
+  mod.method("stype_out", [](const databento::BatchJob& job) { return job.stype_out; });
+  mod.method("ts_received", [](const databento::BatchJob& job) { return job.ts_received; });
+  mod.method("ts_queued", [](const databento::BatchJob& job) { return job.ts_queued; });
+  mod.method("ts_process_start", [](const databento::BatchJob& job) { return job.ts_process_start; });
+  mod.method("ts_process_done", [](const databento::BatchJob& job) { return job.ts_process_done; });
+  mod.method("ts_expiration", [](const databento::BatchJob& job) { return job.ts_expiration; });
+  mod.method("record_count", [](const databento::BatchJob& job) { return job.record_count; });
+  mod.method("billed_size", [](const databento::BatchJob& job) { return job.billed_size; });
+  mod.method("actual_size", [](const databento::BatchJob& job) { return job.actual_size; });
+  mod.method("package_size", [](const databento::BatchJob& job) { return job.package_size; });
+  mod.method("symbols", [](const databento::BatchJob& job) {
+    std::vector<std::string> result;
+    for (const auto& s : job.symbols) {
+      result.push_back(std::string(s.data()));
+    }
+    return result;
+  });
+
+  // SymbologyResolution - Symbol resolution results
+  mod.add_type<databento::SymbologyResolution>("SymbologyResolution")
+    .method("stype_in", [](const databento::SymbologyResolution& res) {
+      return res.stype_in;
+    })
+    .method("stype_out", [](const databento::SymbologyResolution& res) {
+      return res.stype_out;
+    })
+    .method("mappings", [](const databento::SymbologyResolution& res)
+      -> std::vector<std::pair<std::string, std::vector<std::string>>> {
+      std::vector<std::pair<std::string, std::vector<std::string>>> result;
+      for (const auto& [symbol, intervals] : res.mappings) {
+        std::vector<std::string> interval_strs;
+        for (const auto& interval : intervals) {
+          interval_strs.push_back(std::string(interval.symbol.data()));
+        }
+        result.push_back({std::string(symbol.data()), interval_strs});
+      }
+      return result;
+    })
+    .method("partial", [](const databento::SymbologyResolution& res) {
+      std::vector<std::string> result(res.partial.begin(), res.partial.end());
+      return result;
+    })
+    .method("not_found", [](const databento::SymbologyResolution& res) {
+      std::vector<std::string> result(res.not_found.begin(), res.not_found.end());
+      return result;
+    });
+
+  // ========== ENHANCED HISTORICAL CLIENT (Phase 3 → Phase 6) ==========
+
+  // Replace Phase 3 Historical with expanded version
+  mod.add_type<databento::Historical>("Historical")
+    // ===== METADATA API =====
+    .method("metadata_list_publishers", [](databento::Historical& client)
+      -> std::vector<databento::PublisherDetail> {
+      return client.MetadataListPublishers();
+    })
+    .method("metadata_list_datasets", [](databento::Historical& client)
+      -> std::vector<std::string> {
+      return client.MetadataListDatasets();
+    })
+    .method("metadata_list_datasets_with_range", [](databento::Historical& client,
+                                                     const std::string& start_date,
+                                                     const std::string& end_date)
+      -> std::vector<std::string> {
+      databento::DateRange range{start_date, end_date};
+      return client.MetadataListDatasets(range);
+    })
+    .method("metadata_list_schemas", [](databento::Historical& client,
+                                        const std::string& dataset)
+      -> std::vector<std::string> {
+      return client.MetadataListSchemas(dataset);
+    })
+    .method("metadata_list_fields", [](databento::Historical& client,
+                                       databento::Encoding encoding,
+                                       databento::Schema schema)
+      -> std::vector<databento::FieldDetail> {
+      return client.MetadataListFields(encoding, schema);
+    })
+    .method("metadata_list_unit_prices", [](databento::Historical& client,
+                                            const std::string& dataset)
+      -> std::vector<std::string> {
+      return client.MetadataListUnitPrices(dataset);
+    })
+    .method("metadata_get_dataset_range", [](databento::Historical& client,
+                                             const std::string& dataset)
+      -> databento::DatasetRange {
+      return client.MetadataGetDatasetRange(dataset);
+    })
+    .method("metadata_get_dataset_condition", [](databento::Historical& client,
+                                                 const std::string& dataset,
+                                                 const std::string& start_date,
+                                                 const std::string& end_date)
+      -> std::vector<databento::DatasetConditionDetail> {
+      databento::DateRange range{start_date, end_date};
+      return client.MetadataGetDatasetCondition(dataset, range);
+    })
+    // ===== RECORD COUNT API =====
+    .method("metadata_get_record_count", [](databento::Historical& client,
+                                            const std::string& dataset,
+                                            const std::vector<std::string>& symbols,
+                                            databento::Schema schema,
+                                            const std::string& start_date,
+                                            const std::string& end_date,
+                                            databento::SType stype_in,
+                                            databento::SType stype_out)
+      -> uint64_t {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.MetadataGetRecordCount(dataset, symbols, schema, range,
+                                          stype_in, stype_out);
+    })
+    // ===== BILLING API =====
+    .method("metadata_get_billable_size", [](databento::Historical& client,
+                                             const std::string& dataset,
+                                             const std::vector<std::string>& symbols,
+                                             databento::Schema schema,
+                                             const std::string& start_date,
+                                             const std::string& end_date,
+                                             databento::SType stype_in,
+                                             databento::SType stype_out,
+                                             databento::Encoding encoding)
+      -> uint64_t {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.MetadataGetBillableSize(dataset, symbols, schema, range,
+                                           stype_in, stype_out, encoding);
+    })
+    .method("metadata_get_cost", [](databento::Historical& client,
+                                    const std::string& dataset,
+                                    const std::vector<std::string>& symbols,
+                                    databento::Schema schema,
+                                    const std::string& start_date,
+                                    const std::string& end_date,
+                                    databento::SType stype_in,
+                                    databento::SType stype_out,
+                                    databento::Encoding encoding)
+      -> double {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.MetadataGetCost(dataset, symbols, schema, range,
+                                   stype_in, stype_out, encoding);
+    })
+    // ===== SYMBOLOGY API =====
+    .method("symbology_resolve", [](databento::Historical& client,
+                                    const std::string& dataset,
+                                    const std::vector<std::string>& symbols,
+                                    databento::SType stype_in,
+                                    const std::string& date)
+      -> databento::SymbologyResolution {
+      return client.SymbologyResolve(dataset, symbols, stype_in, date);
+    })
+    // ===== BATCH API =====
+    .method("batch_submit_job", [](databento::Historical& client,
+                                   const std::string& dataset,
+                                   const std::vector<std::string>& symbols,
+                                   databento::Schema schema,
+                                   const std::string& start_date,
+                                   const std::string& end_date,
+                                   databento::SType stype_in,
+                                   databento::SType stype_out,
+                                   databento::Encoding encoding)
+      -> databento::BatchJob {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.BatchSubmitJob(dataset, symbols, schema, range,
+                                  stype_in, stype_out, encoding);
+    })
+    .method("batch_list_jobs", [](databento::Historical& client)
+      -> std::vector<databento::BatchJob> {
+      return client.BatchListJobs();
+    })
+    .method("batch_list_files", [](databento::Historical& client,
+                                   const std::string& job_id)
+      -> std::vector<databento::BatchFileDesc> {
+      return client.BatchListFiles(job_id);
+    })
+    .method("batch_download_file", [](databento::Historical& client,
+                                      const std::string& job_id,
+                                      const std::string& filename,
+                                      const std::string& output_path)
+      -> std::string {
+      return client.BatchDownload(job_id, filename, output_path);
+    })
+    // ===== TIMESERIES API =====
+    .method("timeseries_get_range_to_file", [](databento::Historical& client,
+                                               const std::string& dataset,
+                                               const std::vector<std::string>& symbols,
+                                               databento::Schema schema,
+                                               const std::string& start_date,
+                                               const std::string& end_date,
+                                               databento::SType stype_in,
+                                               databento::SType stype_out,
+                                               databento::Encoding encoding,
+                                               const std::string& output_file)
+      -> std::string {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.TimeseriesGetRangeToFile(dataset, symbols, schema, range,
+                                           stype_in, stype_out, encoding,
+                                           output_file);
+    })
+    // Keep Phase 3 methods for backward compatibility
+    .method("metadata_list_schemas_old", [](databento::Historical& client,
+                                            const std::string& dataset)
+      -> std::vector<std::string> {
+      return client.MetadataListSchemas(dataset);
+    })
+    .method("symbology_resolve_old", [](databento::Historical& client,
+                                        const std::string& dataset,
+                                        const std::vector<std::string>& symbols,
+                                        databento::SType stype_in,
+                                        const std::string& date)
+      -> databento::SymbologyResolution {
+      return client.SymbologyResolve(dataset, symbols, stype_in, date);
+    })
+    .method("timeseries_get_range_to_file_old", [](databento::Historical& client,
+                                                    const std::string& dataset,
+                                                    const std::vector<std::string>& symbols,
+                                                    databento::Schema schema,
+                                                    const std::string& start_date,
+                                                    const std::string& end_date,
+                                                    databento::SType stype_in,
+                                                    databento::SType stype_out,
+                                                    const std::string& output_file)
+      -> std::string {
+      databento::DateTimeRange<std::string> range{start_date, end_date};
+      return client.TimeseriesGetRangeToFile(dataset, symbols, schema, range,
+                                           stype_in, stype_out,
+                                           databento::Encoding::Dbn,
+                                           output_file);
     });
 }
