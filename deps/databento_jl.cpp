@@ -124,4 +124,47 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.method("ts_recv", [](const databento::TradeMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
   mod.method("ts_in_delta", [](const databento::TradeMsg& msg) { return msg.ts_in_delta.count(); });
   mod.method("sequence", [](const databento::TradeMsg& msg) { return msg.sequence; });
+
+  // OhlcvMsg - OHLCV (Open/High/Low/Close/Volume) data
+  mod.add_type<databento::OhlcvMsg>("OhlcvMsg");
+  mod.method("open", [](const databento::OhlcvMsg& msg) { return msg.open; });
+  mod.method("high", [](const databento::OhlcvMsg& msg) { return msg.high; });
+  mod.method("low", [](const databento::OhlcvMsg& msg) { return msg.low; });
+  mod.method("close", [](const databento::OhlcvMsg& msg) { return msg.close; });
+  mod.method("volume", [](const databento::OhlcvMsg& msg) { return msg.volume; });
+
+  // ImbalanceMsg - Imbalance information
+  mod.add_type<databento::ImbalanceMsg>("ImbalanceMsg");
+  mod.method("ts_recv", [](const databento::ImbalanceMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ref_price", [](const databento::ImbalanceMsg& msg) { return msg.ref_price; });
+  mod.method("auction_time", [](const databento::ImbalanceMsg& msg) { return msg.auction_time.time_since_epoch().count(); });
+  mod.method("cont_book_clr_price", [](const databento::ImbalanceMsg& msg) { return msg.cont_book_clr_price; });
+  mod.method("auct_interest_clr_price", [](const databento::ImbalanceMsg& msg) { return msg.auct_interest_clr_price; });
+  mod.method("ssr_filling_price", [](const databento::ImbalanceMsg& msg) { return msg.ssr_filling_price; });
+  mod.method("ind_match_price", [](const databento::ImbalanceMsg& msg) { return msg.ind_match_price; });
+  mod.method("upper_collar", [](const databento::ImbalanceMsg& msg) { return msg.upper_collar; });
+  mod.method("lower_collar", [](const databento::ImbalanceMsg& msg) { return msg.lower_collar; });
+  mod.method("paired_qty", [](const databento::ImbalanceMsg& msg) { return msg.paired_qty; });
+  mod.method("total_imbalance_qty", [](const databento::ImbalanceMsg& msg) { return msg.total_imbalance_qty; });
+  mod.method("market_imbalance_qty", [](const databento::ImbalanceMsg& msg) { return msg.market_imbalance_qty; });
+  mod.method("unpaired_qty", [](const databento::ImbalanceMsg& msg) { return msg.unpaired_qty; });
+  mod.method("auction_type", [](const databento::ImbalanceMsg& msg) { return msg.auction_type; });
+  mod.method("side", [](const databento::ImbalanceMsg& msg) { return msg.side; });
+  mod.method("auction_status", [](const databento::ImbalanceMsg& msg) { return msg.auction_status; });
+  mod.method("freeze_status", [](const databento::ImbalanceMsg& msg) { return msg.freeze_status; });
+  mod.method("num_extensions", [](const databento::ImbalanceMsg& msg) { return msg.num_extensions; });
+  mod.method("unpaired_side", [](const databento::ImbalanceMsg& msg) { return msg.unpaired_side; });
+  mod.method("significant_imbalance", [](const databento::ImbalanceMsg& msg) { return msg.significant_imbalance; });
+
+  // StatMsg - Statistics messages
+  mod.add_type<databento::StatMsg>("StatMsg");
+  mod.method("ts_recv", [](const databento::StatMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ts_ref", [](const databento::StatMsg& msg) { return msg.ts_ref.time_since_epoch().count(); });
+  mod.method("price", [](const databento::StatMsg& msg) { return msg.price; });
+  mod.method("quantity", [](const databento::StatMsg& msg) { return msg.quantity; });
+  mod.method("sequence", [](const databento::StatMsg& msg) { return msg.sequence; });
+  mod.method("ts_in_delta", [](const databento::StatMsg& msg) { return msg.ts_in_delta.count(); });
+  mod.method("stat_type", [](const databento::StatMsg& msg) { return static_cast<uint8_t>(msg.stat_type); });
+  mod.method("channel_id", [](const databento::StatMsg& msg) { return msg.channel_id; });
+  mod.method("update_action", [](const databento::StatMsg& msg) { return static_cast<uint8_t>(msg.update_action); });
 }

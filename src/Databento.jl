@@ -71,4 +71,11 @@ export IFUS_IMPACT, IFLL_IMPACT, XEUR_EOBI, XEEE_EOBI, XCBF_PITCH
 # Export message types
 export MboMsg, TradeMsg
 
+# ============================================================================
+# PHASE 2b: Extended Message Types
+# ============================================================================
+
+# Export additional message types
+export OhlcvMsg, ImbalanceMsg, StatMsg
+
 end # module
