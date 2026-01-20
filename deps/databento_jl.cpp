@@ -22,23 +22,26 @@
 // ============================================================================
 
 namespace jlcxx {
-  // Phase 1 Enums
+  // NOTE: Only primitive enums and simple POD types should be marked as IsMirroredType.
+  // Complex types (Record, Live*, Batch*, Publisher*, etc.) should NOT be marked here
+  // and should be registered with add_type() instead.
+
+  // Phase 1 Enums - TRUE SCALARS, OK for IsMirroredType
   template<> struct IsMirroredType<databento::Schema> : std::true_type {};
   template<> struct IsMirroredType<databento::Encoding> : std::true_type {};
   template<> struct IsMirroredType<databento::SType> : std::true_type {};
 
-  // Phase 2 Enums
+  // Phase 2 Enums - TRUE SCALARS, OK for IsMirroredType
   template<> struct IsMirroredType<databento::RType> : std::true_type {};
   template<> struct IsMirroredType<databento::Action> : std::true_type {};
   template<> struct IsMirroredType<databento::Side> : std::true_type {};
 
-  // Phase 2 Supporting Types
-  template<> struct IsMirroredType<databento::FlagSet> : std::true_type {};
+  // Phase 2 Supporting Types - Simple numeric/POD types
   template<> struct IsMirroredType<databento::UnixNanos> : std::true_type {};
   template<> struct IsMirroredType<databento::TimeDeltaNanos> : std::true_type {};
   template<> struct IsMirroredType<databento::BidAskPair> : std::true_type {};
 
-  // Phase 2 Record Types
+  // Phase 2 Record Types - POD message structs, OK for zero-copy
   template<> struct IsMirroredType<databento::RecordHeader> : std::true_type {};
   template<> struct IsMirroredType<databento::MboMsg> : std::true_type {};
   template<> struct IsMirroredType<databento::TradeMsg> : std::true_type {};
@@ -47,7 +50,7 @@ namespace jlcxx {
   template<> struct IsMirroredType<databento::InstrumentDefMsg> : std::true_type {};
   template<> struct IsMirroredType<databento::ImbalanceMsg> : std::true_type {};
 
-  // Phase 4 Additional Message Types
+  // Phase 4 Additional Message Types - POD message structs
   template<> struct IsMirroredType<databento::StatusMsg> : std::true_type {};
   template<> struct IsMirroredType<databento::OhlcvMsg> : std::true_type {};
   template<> struct IsMirroredType<databento::StatMsg> : std::true_type {};
@@ -58,20 +61,11 @@ namespace jlcxx {
   template<> struct IsMirroredType<databento::Cmbp1Msg> : std::true_type {};
   template<> struct IsMirroredType<databento::CbboMsg> : std::true_type {};
 
-  // Phase 4 File Reader Types
-  template<> struct IsMirroredType<databento::Metadata> : std::true_type {};
-  template<> struct IsMirroredType<databento::Record> : std::true_type {};
+  // Phase 4 File Reader Types - COMPLEX, use add_type(), NOT add_bits()
+  // Do NOT mark these as IsMirroredType - they're handled via add_type()
 
-  // Phase 5 Live Streaming
-  template<> struct IsMirroredType<databento::LiveSubscription> : std::true_type {};
-
-  // Phase 6 Batch/Metadata
-  template<> struct IsMirroredType<databento::BatchJob> : std::true_type {};
-  template<> struct IsMirroredType<databento::BatchFileDesc> : std::true_type {};
-  template<> struct IsMirroredType<databento::PublisherDetail> : std::true_type {};
-  template<> struct IsMirroredType<databento::FieldDetail> : std::true_type {};
-  template<> struct IsMirroredType<databento::DatasetRange> : std::true_type {};
-  template<> struct IsMirroredType<databento::DatasetConditionDetail> : std::true_type {};
+  // Phase 5-6 Types - COMPLEX, use add_type(), NOT add_bits()
+  // Do NOT mark FlagSet, Metadata, Record, Live*, Batch*, Publisher*, etc.
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -168,8 +162,7 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   // Phase 2: Supporting Types
   // ============================================================================
 
-  // FlagSet - Bit flags
-  mod.add_bits<databento::FlagSet>("FlagSet");
+  // FlagSet - Bit flags (complex type, use methods only)
   mod.method("is_last", [](const databento::FlagSet& f) { return f.IsLast(); });
   mod.method("is_tob", [](const databento::FlagSet& f) { return f.IsTob(); });
   mod.method("is_snapshot", [](const databento::FlagSet& f) { return f.IsSnapshot(); });
@@ -413,8 +406,7 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   // PHASE 4: DBN File Reader
   // ============================================================================
 
-  // Metadata - DBN file metadata
-  mod.add_bits<databento::Metadata>("Metadata");
+  // Metadata - DBN file metadata (complex type, use methods only)
   mod.method("version", [](const databento::Metadata& m) { return m.version; });
   mod.method("dataset", [](const databento::Metadata& m) { return std::string(m.dataset.data()); });
   mod.method("schema", [](const databento::Metadata& m) { return m.schema; });
@@ -428,8 +420,7 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.method("partial", [](const databento::Metadata& m) { return m.partial; });
   mod.method("not_found", [](const databento::Metadata& m) { return m.not_found; });
 
-  // Record - Universal record wrapper with type checking
-  mod.add_bits<databento::Record>("Record");
+  // Record - Universal record wrapper with type checking (complex type, use methods only)
   mod.method("header", [](const databento::Record& r) { return r.Header(); });
   mod.method("rtype", [](const databento::Record& r) { return r.RType(); });
   mod.method("size", [](const databento::Record& r) { return r.Size(); });
@@ -466,8 +457,7 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   // PHASE 5: Live Streaming API
   // ============================================================================
 
-  // LiveSubscription - Subscription specification
-  mod.add_bits<databento::LiveSubscription>("LiveSubscription");
+  // LiveSubscription - Subscription specification (complex type)
   mod.method("set_symbols!", [](databento::LiveSubscription& sub,
                                  const std::vector<std::string>& symbols) -> databento::LiveSubscription& {
     sub.symbols = symbols;
@@ -588,7 +578,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   // ============================================================================
 
   // PublisherDetail - Publisher metadata
-  mod.add_bits<databento::PublisherDetail>("PublisherDetail");
   mod.method("publisher_id", [](const databento::PublisherDetail& p) {
     return p.publisher_id;
   });
@@ -603,7 +592,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   });
 
   // FieldDetail - Record field metadata
-  mod.add_bits<databento::FieldDetail>("FieldDetail");
   mod.method("name", [](const databento::FieldDetail& f) {
     return std::string(f.name.data());
   });
@@ -612,7 +600,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   });
 
   // DatasetRange - Date range availability
-  mod.add_bits<databento::DatasetRange>("DatasetRange");
   mod.method("start_date", [](const databento::DatasetRange& r) {
     return std::string(r.start_date.data());
   });
@@ -621,7 +608,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   });
 
   // DatasetConditionDetail - Dataset quality metadata
-  mod.add_bits<databento::DatasetConditionDetail>("DatasetConditionDetail");
   mod.method("date", [](const databento::DatasetConditionDetail& d) {
     return std::string(d.date.data());
   });
@@ -633,7 +619,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   });
 
   // BatchFileDesc - File metadata within batch job
-  mod.add_bits<databento::BatchFileDesc>("BatchFileDesc");
   mod.method("filename", [](const databento::BatchFileDesc& desc) {
     return std::string(desc.filename.data());
   });
@@ -651,7 +636,6 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   });
 
   // BatchJob - Batch job metadata and status
-  mod.add_bits<databento::BatchJob>("BatchJob");
   mod.method("id", [](const databento::BatchJob& job) { return job.id; });
   mod.method("user_id", [](const databento::BatchJob& job) { return job.user_id; });
   mod.method("bill_id", [](const databento::BatchJob& job) { return job.bill_id; });
