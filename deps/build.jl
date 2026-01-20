@@ -3,7 +3,35 @@ using CxxWrap
 # Get the path to the CxxWrap prefix (where JlCxx is installed)
 prefix = CxxWrap.prefix_path()
 
-# Note: Julia library detection simplified - CMake will use JlCxx package config to find everything
+# Find and patch the problematic FindJulia.cmake if it exists
+function patch_find_julia()
+    find_julia_paths = [
+        joinpath(prefix, "lib", "cmake", "JlCxx", "FindJulia.cmake"),
+    ]
+
+    for fj_path in find_julia_paths
+        if isfile(fj_path)
+            @info "Patching FindJulia.cmake at $fj_path"
+            content = read(fj_path, String)
+
+            # Comment out the problematic line 115 that fails when Julia_LIBRARY is empty
+            # Replace: get_filename_component(Julia_LIBRARY_DIR ${Julia_LIBRARY} DIRECTORY)
+            # With safe version that checks if Julia_LIBRARY is set
+            content = replace(content,
+                "get_filename_component(Julia_LIBRARY_DIR \${Julia_LIBRARY} DIRECTORY)" =>
+                "if(DEFINED Julia_LIBRARY)\n    get_filename_component(Julia_LIBRARY_DIR \${Julia_LIBRARY} DIRECTORY)\nendif()"
+            )
+
+            write(fj_path, content)
+            @info "Successfully patched FindJulia.cmake"
+            return
+        end
+    end
+
+    @warn "FindJulia.cmake not found in expected locations"
+end
+
+patch_find_julia()
 
 # Build using CMake
 src_dir = @__DIR__
