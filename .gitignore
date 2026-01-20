@@ -55,3 +55,8 @@ verify_build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Downloaded archives and temporary files
+*.tar.gz
+*.zip
+julia.tar.gz
