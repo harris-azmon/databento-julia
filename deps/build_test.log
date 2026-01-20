@@ -1,0 +1,23 @@
+[ Info: Found Julia library: /tmp/julia-1.10.0/lib/libjulia.so
+[ Info: Passing Julia library to CMake: /tmp/julia-1.10.0/lib/libjulia.so
+[ Info: Executing: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949 -DCMAKE_INSTALL_PREFIX=/home/user/databento-julia/deps -S /home/user/databento-julia/deps -B /home/user/databento-julia/deps/build -DJulia_LIBRARY=/tmp/julia-1.10.0/lib/libjulia.so -DJulia_LIBRARY_DIR=/tmp/julia-1.10.0/lib
+CMake Warning:
+  No source or binary directory provided.  Both will be assumed to be the
+  same as the current working directory, but note that this warning will
+  become a fatal error in future CMake releases.
+
+
+CMake Error: The source directory "/home/user/databento-julia" does not appear to contain CMakeLists.txt.
+Specify --help for usage, or press the help button on the CMake GUI.
+ERROR: LoadError: failed process: Process(`cmake -DCMAKE_BUILD_TYPE=Release-DCMAKE_PREFIX_PATH=/root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949-DCMAKE_INSTALL_PREFIX=/home/user/databento-julia/deps-S/home/user/databento-julia/deps-B/home/user/databento-julia/deps/build-DJulia_LIBRARY=/tmp/julia-1.10.0/lib/libjulia.so-DJulia_LIBRARY_DIR=/tmp/julia-1.10.0/lib`, ProcessExited(1)) [1]
+
+Stacktrace:
+ [1] pipeline_error
+   @ Base ./process.jl:565 [inlined]
+ [2] run(::Cmd; wait::Bool)
+   @ Base ./process.jl:480
+ [3] run(::Cmd)
+   @ Base ./process.jl:477
+ [4] top-level scope
+   @ /home/user/databento-julia/deps/build.jl:75
+in expression starting at /home/user/databento-julia/deps/build.jl:75

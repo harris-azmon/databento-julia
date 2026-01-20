@@ -10,7 +10,8 @@ end
 include(depsfile)
 
 # Wrap the C++ module
-@wrapmodule(() -> libdatabento_jl)
+# Specify the function name explicitly to match the C++ JLCXX_MODULE definition
+@wrapmodule(() -> libdatabento_jl, :define_databento_module)
 
 function __init__()
     @initcxx

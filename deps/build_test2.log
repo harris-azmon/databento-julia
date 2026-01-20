@@ -1,0 +1,53 @@
+[ Info: Found Julia library: /tmp/julia-1.10.0/lib/libjulia.so
+[ Info: Passing Julia library to CMake: /tmp/julia-1.10.0/lib/libjulia.so
+[ Info: Executing: cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949 -DCMAKE_INSTALL_PREFIX=/home/user/databento-julia/deps -S /home/user/databento-julia/deps -B /home/user/databento-julia/deps/build -DJulia_LIBRARY=/tmp/julia-1.10.0/lib/libjulia.so -DJulia_LIBRARY_DIR=/tmp/julia-1.10.0/lib
+[ Info: Cmd object: `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949 -DCMAKE_INSTALL_PREFIX=/home/user/databento-julia/deps -S /home/user/databento-julia/deps -B /home/user/databento-julia/deps/build -DJulia_LIBRARY=/tmp/julia-1.10.0/lib/libjulia.so -DJulia_LIBRARY_DIR=/tmp/julia-1.10.0/lib`
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Julia executable: Julia_EXECUTABLE-NOTFOUND
+CMake Error at /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/FindJulia.cmake:32 (file):
+  file failed to open for reading (No such file or directory):
+
+    /home/user/databento-julia/deps/Julia_VERSION_INCLUDE-NOTFOUND
+Call Stack (most recent call first):
+  /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/JlCxxConfig.cmake:3 (find_package)
+  CMakeLists.txt:10 (find_package)
+
+
+CMake Error at /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/FindJulia.cmake:33 (string):
+  string sub-command REGEX, mode MATCH needs at least 5 arguments total to
+  command.
+Call Stack (most recent call first):
+  /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/JlCxxConfig.cmake:3 (find_package)
+  CMakeLists.txt:10 (find_package)
+
+
+-- Julia_VERSION_STRING: 
+CMake Error at /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/FindJulia.cmake:48 (if):
+  if given arguments:
+
+    "VERSION_LESS" "0.7.0"
+
+  Unknown arguments specified
+Call Stack (most recent call first):
+  /root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949/lib/cmake/JlCxx/JlCxxConfig.cmake:3 (find_package)
+  CMakeLists.txt:10 (find_package)
+
+
+-- Configuring incomplete, errors occurred!
+ERROR: LoadError: failed process: Process(`cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/root/.julia/artifacts/c129d84767ca7fe64514b3789c623e1203355949 -DCMAKE_INSTALL_PREFIX=/home/user/databento-julia/deps -S /home/user/databento-julia/deps -B /home/user/databento-julia/deps/build -DJulia_LIBRARY=/tmp/julia-1.10.0/lib/libjulia.so -DJulia_LIBRARY_DIR=/tmp/julia-1.10.0/lib`, ProcessExited(1)) [1]
+
+Stacktrace:
+ [1] pipeline_error
+   @ Base ./process.jl:565 [inlined]
+ [2] run(::Cmd; wait::Bool)
+   @ Base ./process.jl:480
+ [3] run(::Cmd)
+   @ Base ./process.jl:477
+ [4] top-level scope
+   @ /home/user/databento-julia/deps/build.jl:77
+in expression starting at /home/user/databento-julia/deps/build.jl:77
