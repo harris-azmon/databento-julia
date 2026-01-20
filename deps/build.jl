@@ -3,54 +3,45 @@ using CxxWrap
 # Get the path to the CxxWrap prefix (where JlCxx is installed)
 prefix = CxxWrap.prefix_path()
 
-# Find and patch the problematic FindJulia.cmake if it exists
-function patch_find_julia()
-    find_julia_paths = [
-        joinpath(prefix, "lib", "cmake", "JlCxx", "FindJulia.cmake"),
-    ]
+# Get Julia executable and library paths
+julia_executable = Sys.BINDIR |> dirname |> x -> joinpath(x, "bin", "julia")
+julia_home = dirname(Sys.BINDIR)
 
-    for fj_path in find_julia_paths
-        if isfile(fj_path)
-            @info "Patching FindJulia.cmake at $fj_path"
-            content = read(fj_path, String)
+@info "Julia executable: $julia_executable"
+@info "Julia home: $julia_home"
 
-            # Comment out the problematic line 115 that fails when Julia_LIBRARY is empty
-            # Replace: get_filename_component(Julia_LIBRARY_DIR ${Julia_LIBRARY} DIRECTORY)
-            # With safe version that checks if Julia_LIBRARY is set
-            content = replace(content,
-                "get_filename_component(Julia_LIBRARY_DIR \${Julia_LIBRARY} DIRECTORY)" =>
-                "if(DEFINED Julia_LIBRARY)\n    get_filename_component(Julia_LIBRARY_DIR \${Julia_LIBRARY} DIRECTORY)\nendif()"
-            )
+# Copy the fixed FindJulia.cmake to deps directory to override the buggy JlCxx version
+src_dir = @__DIR__
+fixed_find_julia = joinpath(dirname(src_dir), "FindJulia_Fixed.cmake")
+deps_find_julia = joinpath(src_dir, "FindJulia.cmake")
 
-            write(fj_path, content)
-            @info "Successfully patched FindJulia.cmake"
-            return
-        end
-    end
-
-    @warn "FindJulia.cmake not found in expected locations"
+if isfile(fixed_find_julia)
+    @info "Using fixed FindJulia.cmake from project root"
+    cp(fixed_find_julia, deps_find_julia; force=true)
+else
+    @warn "Fixed FindJulia.cmake not found at $fixed_find_julia"
 end
 
-patch_find_julia()
-
 # Build using CMake
-src_dir = @__DIR__
 build_dir = joinpath(src_dir, "build")
 
 # Create build directory if it doesn't exist
 mkpath(build_dir)
 
 # Configure with CMake
-# Use CxxWrap's prefix path to find JlCxx via CONFIG mode
+# Use the fixed FindJulia.cmake and pass Julia paths explicitly
 cmake_args = [
     "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_PREFIX_PATH=$prefix",
+    "-DCMAKE_MODULE_PATH=$src_dir",  # Use our fixed FindJulia.cmake
     "-DCMAKE_INSTALL_PREFIX=$src_dir",
+    "-DJulia_EXECUTABLE=$julia_executable",
     "-S", "$src_dir",
     "-B", "$build_dir"
 ]
 
 @info "Using CxxWrap prefix: $prefix"
+@info "Using fixed FindJulia.cmake from: $deps_find_julia"
 @info "Executing: cmake $(join(cmake_args, " "))"
 
 # Build cmake command using Cmd constructor to ensure proper argument passing

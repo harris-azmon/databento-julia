@@ -6,13 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Find JlCxx - use the artifact path provided by CMake
-# JlCxx provides everything we need
-find_package(JlCxx QUIET CONFIG)
+# First find Julia using our fixed FindJulia.cmake
+find_package(Julia REQUIRED)
 
-if(NOT JlCxx_FOUND)
-    message(FATAL_ERROR "JlCxx not found. Make sure CxxWrap.jl is properly installed.")
-endif()
+# Then find JlCxx which depends on Julia
+find_package(JlCxx REQUIRED CONFIG)
 
 # Fetch databento-cpp library
 include(FetchContent)
