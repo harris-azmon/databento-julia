@@ -18,60 +18,60 @@
 #include <unordered_map>
 
 // ============================================================================
-// IsBits Template Specializations for Zero-Copy Access
+// IsMirroredType Template Specializations for Zero-Copy Access
 // ============================================================================
 
 namespace jlcxx {
   // Phase 1 Enums
-  template<> struct IsBits<databento::Schema> : std::true_type {};
-  template<> struct IsBits<databento::Encoding> : std::true_type {};
-  template<> struct IsBits<databento::SType> : std::true_type {};
+  template<> struct IsMirroredType<databento::Schema> : std::true_type {};
+  template<> struct IsMirroredType<databento::Encoding> : std::true_type {};
+  template<> struct IsMirroredType<databento::SType> : std::true_type {};
 
   // Phase 2 Enums
-  template<> struct IsBits<databento::RType> : std::true_type {};
-  template<> struct IsBits<databento::Action> : std::true_type {};
-  template<> struct IsBits<databento::Side> : std::true_type {};
+  template<> struct IsMirroredType<databento::RType> : std::true_type {};
+  template<> struct IsMirroredType<databento::Action> : std::true_type {};
+  template<> struct IsMirroredType<databento::Side> : std::true_type {};
 
   // Phase 2 Supporting Types
-  template<> struct IsBits<databento::FlagSet> : std::true_type {};
-  template<> struct IsBits<databento::UnixNanos> : std::true_type {};
-  template<> struct IsBits<databento::TimeDeltaNanos> : std::true_type {};
-  template<> struct IsBits<databento::BidAskPair> : std::true_type {};
+  template<> struct IsMirroredType<databento::FlagSet> : std::true_type {};
+  template<> struct IsMirroredType<databento::UnixNanos> : std::true_type {};
+  template<> struct IsMirroredType<databento::TimeDeltaNanos> : std::true_type {};
+  template<> struct IsMirroredType<databento::BidAskPair> : std::true_type {};
 
   // Phase 2 Record Types
-  template<> struct IsBits<databento::RecordHeader> : std::true_type {};
-  template<> struct IsBits<databento::MboMsg> : std::true_type {};
-  template<> struct IsBits<databento::TradeMsg> : std::true_type {};
-  template<> struct IsBits<databento::Mbp1Msg> : std::true_type {};
-  template<> struct IsBits<databento::Mbp10Msg> : std::true_type {};
-  template<> struct IsBits<databento::InstrumentDefMsg> : std::true_type {};
-  template<> struct IsBits<databento::ImbalanceMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::RecordHeader> : std::true_type {};
+  template<> struct IsMirroredType<databento::MboMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::TradeMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::Mbp1Msg> : std::true_type {};
+  template<> struct IsMirroredType<databento::Mbp10Msg> : std::true_type {};
+  template<> struct IsMirroredType<databento::InstrumentDefMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::ImbalanceMsg> : std::true_type {};
 
   // Phase 4 Additional Message Types
-  template<> struct IsBits<databento::StatusMsg> : std::true_type {};
-  template<> struct IsBits<databento::OhlcvMsg> : std::true_type {};
-  template<> struct IsBits<databento::StatMsg> : std::true_type {};
-  template<> struct IsBits<databento::ErrorMsg> : std::true_type {};
-  template<> struct IsBits<databento::SymbolMappingMsg> : std::true_type {};
-  template<> struct IsBits<databento::SystemMsg> : std::true_type {};
-  template<> struct IsBits<databento::BboMsg> : std::true_type {};
-  template<> struct IsBits<databento::Cmbp1Msg> : std::true_type {};
-  template<> struct IsBits<databento::CbboMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::StatusMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::OhlcvMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::StatMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::ErrorMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::SymbolMappingMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::SystemMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::BboMsg> : std::true_type {};
+  template<> struct IsMirroredType<databento::Cmbp1Msg> : std::true_type {};
+  template<> struct IsMirroredType<databento::CbboMsg> : std::true_type {};
 
   // Phase 4 File Reader Types
-  template<> struct IsBits<databento::Metadata> : std::true_type {};
-  template<> struct IsBits<databento::Record> : std::true_type {};
+  template<> struct IsMirroredType<databento::Metadata> : std::true_type {};
+  template<> struct IsMirroredType<databento::Record> : std::true_type {};
 
   // Phase 5 Live Streaming
-  template<> struct IsBits<databento::LiveSubscription> : std::true_type {};
+  template<> struct IsMirroredType<databento::LiveSubscription> : std::true_type {};
 
   // Phase 6 Batch/Metadata
-  template<> struct IsBits<databento::BatchJob> : std::true_type {};
-  template<> struct IsBits<databento::BatchFileDesc> : std::true_type {};
-  template<> struct IsBits<databento::PublisherDetail> : std::true_type {};
-  template<> struct IsBits<databento::FieldDetail> : std::true_type {};
-  template<> struct IsBits<databento::DatasetRange> : std::true_type {};
-  template<> struct IsBits<databento::DatasetConditionDetail> : std::true_type {};
+  template<> struct IsMirroredType<databento::BatchJob> : std::true_type {};
+  template<> struct IsMirroredType<databento::BatchFileDesc> : std::true_type {};
+  template<> struct IsMirroredType<databento::PublisherDetail> : std::true_type {};
+  template<> struct IsMirroredType<databento::FieldDetail> : std::true_type {};
+  template<> struct IsMirroredType<databento::DatasetRange> : std::true_type {};
+  template<> struct IsMirroredType<databento::DatasetConditionDetail> : std::true_type {};
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
