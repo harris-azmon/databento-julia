@@ -35,6 +35,7 @@ cmake_args = [
     "-DCMAKE_PREFIX_PATH=$prefix",
     "-DCMAKE_MODULE_PATH=$src_dir",  # Use our fixed FindJulia.cmake
     "-DCMAKE_INSTALL_PREFIX=$src_dir",
+    "-DJulia_PREFIX=$julia_home",
     "-DJulia_EXECUTABLE=$julia_executable",
     "-S", "$src_dir",
     "-B", "$build_dir"

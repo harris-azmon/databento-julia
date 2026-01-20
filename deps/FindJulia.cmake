@@ -40,37 +40,24 @@ message(STATUS "Julia_INCLUDE_DIRS: ${Julia_INCLUDE_DIRS}")
 
 # Julia Libraries
 if(NOT Julia_LIBRARY)
-    # Try common locations first
-    set(JULIA_LIB_DIR "${Julia_PREFIX}/lib")
-    if(NOT EXISTS "${JULIA_LIB_DIR}")
-        # Fallback: derive from Julia executable
-        string(REGEX REPLACE "/bin/julia$" "/lib" JULIA_LIB_DIR "${Julia_EXECUTABLE}")
-    endif()
-
-    # Look for Julia library
-    find_library(Julia_LIBRARY
-        NAMES libjulia julia libjulia.so libjulia.so.1
-        PATHS "${JULIA_LIB_DIR}"
-        NO_DEFAULT_PATH
+    execute_process(
+        COMMAND ${Julia_EXECUTABLE} --startup-file=no -E "using Libdl; abspath(Libdl.dlpath((ccall(:jl_is_debugbuild, Cint, ()) != 0) ? \"libjulia-debug\" : \"libjulia\"))"
+        OUTPUT_VARIABLE Julia_LIBRARY
     )
-
-    if(NOT Julia_LIBRARY)
-        # Try a direct path check
-        if(EXISTS "${JULIA_LIB_DIR}/libjulia.so")
-            set(Julia_LIBRARY "${JULIA_LIB_DIR}/libjulia.so")
-        elseif(EXISTS "${JULIA_LIB_DIR}/libjulia.so.1")
-            set(Julia_LIBRARY "${JULIA_LIB_DIR}/libjulia.so.1")
-        endif()
-    endif()
+    string(REGEX REPLACE "\"" "" Julia_LIBRARY "${Julia_LIBRARY}")
+    string(REGEX REPLACE "\n" "" Julia_LIBRARY "${Julia_LIBRARY}")
+    string(STRIP "${Julia_LIBRARY}" Julia_LIBRARY)
 endif()
 
 if(Julia_LIBRARY)
     message(STATUS "Julia_LIBRARY: ${Julia_LIBRARY}")
-    # Get directory from library path
-    get_filename_component(Julia_LIBRARY_DIR "${Julia_LIBRARY}" DIRECTORY)
-    message(STATUS "Julia_LIBRARY_DIR: ${Julia_LIBRARY_DIR}")
+    # Get directory from library path - use string operations to be safe
+    string(REGEX REPLACE "^(.+)/[^/]+\\.so.*$" "\\1" Julia_LIBRARY_DIR "${Julia_LIBRARY}")
+    if(NOT Julia_LIBRARY_DIR STREQUAL "")
+        message(STATUS "Julia_LIBRARY_DIR: ${Julia_LIBRARY_DIR}")
+    endif()
 else()
-    message(FATAL_ERROR "Julia library not found in ${JULIA_LIB_DIR}")
+    message(FATAL_ERROR "Julia library not found")
 endif()
 
 # Julia Headers
