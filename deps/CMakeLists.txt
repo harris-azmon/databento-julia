@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.15)
 
 project(databento_jl CXX)
 
@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Find JlCxx for Julia C++ wrapper
-find_package(JlCxx REQUIRED)
+find_package(JlCxx REQUIRED CONFIG)
 
 # Fetch databento-cpp library
 include(FetchContent)
