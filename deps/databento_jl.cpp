@@ -1,5 +1,6 @@
 #include <jlcxx/jlcxx.hpp>
 #include <databento/enums.hpp>
+#include <databento/record.hpp>
 
 namespace jlcxx {
   // Enums are true scalars - OK for IsMirroredType
@@ -9,6 +10,9 @@ namespace jlcxx {
   template<> struct IsMirroredType<databento::RType> : std::true_type {};
   template<> struct IsMirroredType<databento::Action> : std::true_type {};
   template<> struct IsMirroredType<databento::Side> : std::true_type {};
+
+  // Message types - NOT mirrored, use add_type with methods instead
+  // This allows CxxWrap to marshal complex types with chrono members
 }
 
 JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
@@ -93,4 +97,31 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
   mod.set_const("SIDE_ASK", databento::Side::Ask);
   mod.set_const("SIDE_BID", databento::Side::Bid);
   mod.set_const("SIDE_NONE", databento::Side::None);
+
+  // ============================================================================
+  // PHASE 2: Market Data Message Types
+  // ============================================================================
+
+  // MboMsg - Market-by-order message
+  mod.add_type<databento::MboMsg>("MboMsg");
+  mod.method("order_id", [](const databento::MboMsg& msg) { return msg.order_id; });
+  mod.method("price", [](const databento::MboMsg& msg) { return msg.price; });
+  mod.method("size", [](const databento::MboMsg& msg) { return msg.size; });
+  mod.method("channel_id", [](const databento::MboMsg& msg) { return msg.channel_id; });
+  mod.method("action", [](const databento::MboMsg& msg) { return msg.action; });
+  mod.method("side", [](const databento::MboMsg& msg) { return msg.side; });
+  mod.method("ts_recv", [](const databento::MboMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ts_in_delta", [](const databento::MboMsg& msg) { return msg.ts_in_delta.count(); });
+  mod.method("sequence", [](const databento::MboMsg& msg) { return msg.sequence; });
+
+  // TradeMsg - Trade message (Mbp0)
+  mod.add_type<databento::TradeMsg>("TradeMsg");
+  mod.method("price", [](const databento::TradeMsg& msg) { return msg.price; });
+  mod.method("size", [](const databento::TradeMsg& msg) { return msg.size; });
+  mod.method("action", [](const databento::TradeMsg& msg) { return msg.action; });
+  mod.method("side", [](const databento::TradeMsg& msg) { return msg.side; });
+  mod.method("depth", [](const databento::TradeMsg& msg) { return msg.depth; });
+  mod.method("ts_recv", [](const databento::TradeMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
+  mod.method("ts_in_delta", [](const databento::TradeMsg& msg) { return msg.ts_in_delta.count(); });
+  mod.method("sequence", [](const databento::TradeMsg& msg) { return msg.sequence; });
 }

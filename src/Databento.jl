@@ -64,5 +64,11 @@ export IFEU_IMPACT, NDEX_IMPACT, EQUS_ALL, XNAS_BASIC
 export EQUS_SUMMARY, XCIS_TRADESBBO, XNYS_TRADESBBO, EQUS_MINI
 export IFUS_IMPACT, IFLL_IMPACT, XEUR_EOBI, XEEE_EOBI, XCBF_PITCH
 
+# ============================================================================
+# PHASE 2: Message Types
+# ============================================================================
+
+# Export message types
+export MboMsg, TradeMsg
 
 end # module
