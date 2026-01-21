@@ -150,6 +150,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // MboMsg - Market-by-order message
   mod.add_type<databento::MboMsg>("MboMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::MboMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::MboMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::MboMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::MboMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::MboMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("order_id", [](const databento::MboMsg& msg) { return msg.order_id; });
   mod.method("price", [](const databento::MboMsg& msg) { return msg.price; });
   mod.method("size", [](const databento::MboMsg& msg) { return msg.size; });
@@ -162,6 +169,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // TradeMsg - Trade message (Mbp0)
   mod.add_type<databento::TradeMsg>("TradeMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::TradeMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::TradeMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::TradeMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::TradeMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::TradeMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("price", [](const databento::TradeMsg& msg) { return msg.price; });
   mod.method("size", [](const databento::TradeMsg& msg) { return msg.size; });
   mod.method("action", [](const databento::TradeMsg& msg) { return msg.action; });
@@ -173,6 +187,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // OhlcvMsg - OHLCV (Open/High/Low/Close/Volume) data
   mod.add_type<databento::OhlcvMsg>("OhlcvMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::OhlcvMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::OhlcvMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::OhlcvMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::OhlcvMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::OhlcvMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("open", [](const databento::OhlcvMsg& msg) { return msg.open; });
   mod.method("high", [](const databento::OhlcvMsg& msg) { return msg.high; });
   mod.method("low", [](const databento::OhlcvMsg& msg) { return msg.low; });
@@ -181,6 +202,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // ImbalanceMsg - Imbalance information
   mod.add_type<databento::ImbalanceMsg>("ImbalanceMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::ImbalanceMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::ImbalanceMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::ImbalanceMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::ImbalanceMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::ImbalanceMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("ts_recv", [](const databento::ImbalanceMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
   mod.method("ref_price", [](const databento::ImbalanceMsg& msg) { return msg.ref_price; });
   mod.method("auction_time", [](const databento::ImbalanceMsg& msg) { return msg.auction_time.time_since_epoch().count(); });
@@ -204,6 +232,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // StatMsg - Statistics messages
   mod.add_type<databento::StatMsg>("StatMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::StatMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::StatMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::StatMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::StatMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::StatMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("ts_recv", [](const databento::StatMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
   mod.method("ts_ref", [](const databento::StatMsg& msg) { return msg.ts_ref.time_since_epoch().count(); });
   mod.method("price", [](const databento::StatMsg& msg) { return msg.price; });
@@ -229,6 +264,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // Mbp1Msg - Market-by-price level 1 (with 1 bid/ask level)
   mod.add_type<databento::Mbp1Msg>("Mbp1Msg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::Mbp1Msg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::Mbp1Msg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::Mbp1Msg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::Mbp1Msg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::Mbp1Msg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("price", [](const databento::Mbp1Msg& msg) { return msg.price; });
   mod.method("size", [](const databento::Mbp1Msg& msg) { return msg.size; });
   mod.method("action", [](const databento::Mbp1Msg& msg) { return msg.action; });
@@ -247,6 +289,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // Mbp10Msg - Market-by-price level 10 (with 10 bid/ask levels)
   mod.add_type<databento::Mbp10Msg>("Mbp10Msg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::Mbp10Msg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::Mbp10Msg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::Mbp10Msg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::Mbp10Msg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::Mbp10Msg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("price", [](const databento::Mbp10Msg& msg) { return msg.price; });
   mod.method("size", [](const databento::Mbp10Msg& msg) { return msg.size; });
   mod.method("action", [](const databento::Mbp10Msg& msg) { return msg.action; });
@@ -268,6 +317,13 @@ JLCXX_MODULE define_databento_module(jlcxx::Module& mod)
 
   // StatusMsg - Trading status message
   mod.add_type<databento::StatusMsg>("StatusMsg");
+  // Header accessors
+  mod.method("hd_length", [](const databento::StatusMsg& msg) { return msg.hd.length; });
+  mod.method("hd_rtype", [](const databento::StatusMsg& msg) { return msg.hd.rtype; });
+  mod.method("hd_publisher_id", [](const databento::StatusMsg& msg) { return msg.hd.publisher_id; });
+  mod.method("hd_instrument_id", [](const databento::StatusMsg& msg) { return msg.hd.instrument_id; });
+  mod.method("hd_ts_event", [](const databento::StatusMsg& msg) { return msg.hd.ts_event.time_since_epoch().count(); });
+  // Data accessors
   mod.method("ts_recv", [](const databento::StatusMsg& msg) { return msg.ts_recv.time_since_epoch().count(); });
   mod.method("action", [](const databento::StatusMsg& msg) { return msg.action; });
   mod.method("reason", [](const databento::StatusMsg& msg) { return msg.reason; });
