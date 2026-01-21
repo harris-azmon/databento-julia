@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.15)
 
 project(databento_jl CXX)
 
@@ -6,8 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Find JlCxx for Julia C++ wrapper
-find_package(JlCxx REQUIRED)
+# First find Julia using our fixed FindJulia.cmake
+find_package(Julia REQUIRED)
+
+# Then find JlCxx which depends on Julia
+find_package(JlCxx REQUIRED CONFIG)
 
 # Fetch databento-cpp library
 include(FetchContent)
@@ -21,15 +24,21 @@ FetchContent_MakeAvailable(databento)
 # Create the Julia extension library
 add_library(databento_jl SHARED databento_jl.cpp)
 
+# Link against JlCxx and databento
 target_link_libraries(databento_jl
   PRIVATE
     JlCxx::cxxwrap_julia
     databento::databento
 )
 
+# Get Julia information from JlCxx
+message(STATUS "JlCxx found at: ${JlCxx_PREFIX}")
+message(STATUS "Julia include dirs: ${Julia_INCLUDE_DIRS}")
+message(STATUS "Julia library dir: ${Julia_LIBRARY_DIR}")
+
 # Install the library
 install(TARGETS databento_jl
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
 )

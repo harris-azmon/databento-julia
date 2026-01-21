@@ -22,7 +22,7 @@ end
 # ============================================================================
 
 # Export enum types
-export Schema, Encoding, SType, Dataset
+export Schema, Encoding, SType, RType, Action, Side, Dataset
 
 # Export Schema constants
 export MBO, MBP1, MBP10, TBBO, TRADES
@@ -38,6 +38,21 @@ export INSTRUMENT_ID, RAW_SYMBOL, SMART, CONTINUOUS, PARENT
 export NASDAQ_SYMBOL, CMS_SYMBOL, ISIN, US_CODE
 export BBG_COMP_ID, BBG_COMP_TICKER, FIGI, FIGI_TICKER
 
+# Export RType constants
+export RTYPE_MBP0, RTYPE_MBP1, RTYPE_MBP10
+export RTYPE_OHLCV_1S, RTYPE_OHLCV_1M, RTYPE_OHLCV_1H, RTYPE_OHLCV_1D
+export RTYPE_STATUS, RTYPE_INSTRUMENT_DEF, RTYPE_IMBALANCE, RTYPE_ERROR
+export RTYPE_SYMBOL_MAPPING, RTYPE_SYSTEM, RTYPE_STATISTICS
+export RTYPE_MBO, RTYPE_CMBP1, RTYPE_CBBO_1S, RTYPE_CBBO_1M
+export RTYPE_TCBBO, RTYPE_BBO_1S, RTYPE_BBO_1M
+
+# Export Action constants
+export ACTION_MODIFY, ACTION_TRADE, ACTION_FILL, ACTION_CANCEL
+export ACTION_ADD, ACTION_CLEAR, ACTION_NONE
+
+# Export Side constants
+export SIDE_ASK, SIDE_BID, SIDE_NONE
+
 # Export Dataset constants
 export GLBX_MDP3, XNAS_ITCH, XBOS_ITCH, XPSX_ITCH
 export BATS_PITCH, BATY_PITCH, EDGA_PITCH, EDGX_PITCH
@@ -49,5 +64,44 @@ export IFEU_IMPACT, NDEX_IMPACT, EQUS_ALL, XNAS_BASIC
 export EQUS_SUMMARY, XCIS_TRADESBBO, XNYS_TRADESBBO, EQUS_MINI
 export IFUS_IMPACT, IFLL_IMPACT, XEUR_EOBI, XEEE_EOBI, XCBF_PITCH
 
+# ============================================================================
+# PHASE 2: Message Types
+# ============================================================================
+
+# Export message types
+export MboMsg, TradeMsg
+
+# ============================================================================
+# PHASE 2b: Extended Message Types
+# ============================================================================
+
+# Export additional message types
+export OhlcvMsg, ImbalanceMsg, StatMsg
+
+# ============================================================================
+# PHASE 3: Status and Market-by-Price Types
+# ============================================================================
+
+# Export new enum types for Phase 3
+export StatusAction, StatusReason, TradingEvent, TriState
+
+# Export related constants
+export STATUS_ACTION_NONE, STATUS_ACTION_PRE_OPEN, STATUS_ACTION_PRE_CROSS
+export STATUS_ACTION_QUOTING, STATUS_ACTION_CROSS, STATUS_ACTION_ROTATION
+export STATUS_ACTION_NEW_PRICE_INDICATION, STATUS_ACTION_TRADING, STATUS_ACTION_HALT
+export STATUS_ACTION_PAUSE, STATUS_ACTION_SUSPEND, STATUS_ACTION_PRE_CLOSE
+export STATUS_ACTION_CLOSE, STATUS_ACTION_POST_CLOSE, STATUS_ACTION_SSR_CHANGE
+export STATUS_ACTION_NOT_AVAILABLE
+
+export STATUS_REASON_NONE, STATUS_REASON_SCHEDULED, STATUS_REASON_SURVEILLANCE
+export STATUS_REASON_MARKET_EVENT, STATUS_REASON_INSTRUMENT_ACTIVATION
+
+export TRADING_EVENT_NONE, TRADING_EVENT_NO_CANCEL, TRADING_EVENT_CHANGE_SESSION
+export TRADING_EVENT_IMPLIED_MATCHING_ON, TRADING_EVENT_IMPLIED_MATCHING_OFF
+
+export TRISTATE_YES, TRISTATE_NO, TRISTATE_NOT_AVAILABLE
+
+# Export message types with bid/ask levels
+export BidAskPair, Mbp1Msg, Mbp10Msg, StatusMsg
 
 end # module
