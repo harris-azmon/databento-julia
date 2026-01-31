@@ -71,10 +71,9 @@ export INSTRUMENT_CLASS_FX_SPOT, INSTRUMENT_CLASS_COMMODITY_SPOT
 # Export Types
 export DbnFileStore, Record, Metadata, RecordHeader, InstrumentClass, Action, Side, RType
 export MboMsg, TradeMsg, Mbp1Msg, Mbp10Msg, InstrumentDefMsg, ImbalanceMsg, TbboMsg
-
-const TbboMsg = Mbp1Msg
 export StatusMsg, StatMsg, ErrorMsg, SymbolMappingMsg, SystemMsg
 export BboMsg, Cmbp1Msg, CbboMsg, ConsolidatedBidAskPair
+export TsSymbolMap
 export Historical, HistoricalBuilder
 
 # Export Methods
@@ -83,8 +82,19 @@ export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, ge
 export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
 export set_key!, set_key_from_env!, build
 export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
-export symbology_resolve, timeseries_get_range_to_file
+export symbology_resolve, timeseries_get_range_to_file, timeseries_get_range
 export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
+export KEEP_GOING_CONTINUE, KEEP_GOING_STOP
+# Export Methods
+export next_record, get_metadata, header, rtype
+export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, get_instrument_def_if, get_ohlcv_if
+export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
+export set_key!, set_key_from_env!, build
+export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
+export symbology_resolve, timeseries_get_range_to_file, timeseries_get_range
+export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
+export KEEP_GOING_CONTINUE, KEEP_GOING_STOP
+export create_symbol_map, at, is_empty
 
 Base.convert(::Type{Action}, x::Action) = x
 Base.convert(::Type{Side}, x::Side) = x
@@ -114,22 +124,50 @@ to_string(s::StatUpdateAction) = to_string_stat_update_action(s)
 
 # Show methods for better REPL display
 Base.show(io::IO, s::Schema) = print(io, "Schema::", to_string(s))
-Base.show(io::IO, e::Encoding) = print(io, "Encoding::", to_string(e))
-Base.show(io::IO, s::SType) = print(io, "SType::", to_string(s))
-Base.show(io::IO, d::Dataset) = print(io, "Dataset::", to_string(d))
-Base.show(io::IO, p::Publisher) = print(io, "Publisher::", to_string(p))
-Base.show(io::IO, i::InstrumentClass) = print(io, "InstrumentClass::", to_string(i))
-Base.show(io::IO, s::StatusAction) = print(io, "StatusAction::", to_string(s))
-Base.show(io::IO, s::StatusReason) = print(io, "StatusReason::", to_string(s))
-Base.show(io::IO, t::TradingEvent) = print(io, "TradingEvent::", to_string(t))
-Base.show(io::IO, t::TriState) = print(io, "TriState::", to_string(t))
-Base.show(io::IO, s::StatType) = print(io, "StatType::", to_string(s))
+# ...
 Base.show(io::IO, s::StatUpdateAction) = print(io, "StatUpdateAction::", to_string(s))
 
-# ============================================================================ 
-# Tables.jl Integration
-# ============================================================================ 
+# TsSymbolMap dispatch
+Base.size(m::TsSymbolMap) = (Int(map_size(m)),)
+at(m::TsSymbolMap, r::TradeMsg) = String(at_trade(m, r))
+at(m::TsSymbolMap, r::MboMsg) = String(at_mbo(m, r))
+at(m::TsSymbolMap, r::Mbp1Msg) = String(at_mbp1(m, r))
+at(m::TsSymbolMap, r::Mbp10Msg) = String(at_mbp10(m, r))
+at(m::TsSymbolMap, r::OhlcvMsg) = String(at_ohlcv(m, r))
+at(m::TsSymbolMap, r::InstrumentDefMsg) = String(at_instr_def(m, r))
+at(m::TsSymbolMap, r::StatusMsg) = String(at_status(m, r))
+at(m::TsSymbolMap, r::StatMsg) = String(at_stat(m, r))
 
+function at(m::TsSymbolMap, r::Record)
+    rt = rtype(r)
+    if rt == RTYPE_MBP0
+        msg_ptr = get_trade_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_MBO
+        msg_ptr = get_mbo_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_MBP1
+        msg_ptr = get_mbp1_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_MBP10
+        msg_ptr = get_mbp10_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_INSTRUMENT_DEF
+        msg_ptr = get_instrument_def_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_STATUS
+        msg_ptr = get_status_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    elseif rt == RTYPE_STATISTICS
+        msg_ptr = get_stat_if(r)
+        return msg_ptr != C_NULL ? at(m, msg_ptr[]) : ""
+    end
+    return ""
+end
+
+# ============================================================================
+# Tables.jl Integration
+# ============================================================================
 Tables.istable(::Type{<:DbnFileStore}) = true
 Tables.rowaccess(::Type{<:DbnFileStore}) = true
 Tables.rows(store::DbnFileStore) = store

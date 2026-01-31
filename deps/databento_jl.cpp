@@ -1,4 +1,5 @@
 #include <jlcxx/jlcxx.hpp>
+#include <jlcxx/functions.hpp>
 #include <databento/enums.hpp>
 #include <databento/publishers.hpp>
 #include <databento/record.hpp>
@@ -60,6 +61,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.add_bits<databento::TriState>("TriState", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatType>("StatType", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatUpdateAction>("StatUpdateAction", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::KeepGoing>("KeepGoing", jlcxx::julia_type("CppEnum"));
 
   // Register structs and classes
   auto flag_set = mod.add_type<databento::FlagSet>("FlagSet");
@@ -97,6 +99,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   auto record = mod.add_type<databento::Record>("Record");
   auto metadata = mod.add_type<databento::Metadata>("Metadata");
   auto dbn_file_store = mod.add_type<databento::DbnFileStore>("DbnFileStore");
+  auto ts_symbol_map = mod.add_type<databento::TsSymbolMap>("TsSymbolMap");
 
   // ============================================================================
   // ENUM CONSTANTS
@@ -242,8 +245,15 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.method("to_string_tri_state", [](databento::TriState t) { return std::string(databento::ToString(t)); });
   mod.method("to_string_stat_type", [](databento::StatType s) { return std::string(databento::ToString(s)); });
   mod.method("to_string_stat_update_action", [](databento::StatUpdateAction s) { return std::string(databento::ToString(s)); });
+  mod.method("to_string_keep_going", [](databento::KeepGoing k) { 
+    return k == databento::KeepGoing::Continue ? std::string("Continue") : std::string("Stop");
+  });
 
-  // FlagSet
+  // KeepGoing Constants
+  mod.set_const("KEEP_GOING_CONTINUE", databento::KeepGoing::Continue);
+  mod.set_const("KEEP_GOING_STOP", databento::KeepGoing::Stop);
+
+  // Schema
   flag_set.method("is_last", [](const databento::FlagSet& f) { return f.IsLast(); });
   flag_set.method("is_tob", [](const databento::FlagSet& f) { return f.IsTob(); });
   flag_set.method("is_snapshot", [](const databento::FlagSet& f) { return f.IsSnapshot(); });
@@ -498,6 +508,24 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
     })
     .method("timeseries_get_range_to_file", [](databento::Historical& client, const std::string& dataset, const std::vector<std::string>& symbols, databento::Schema schema, const std::string& start, const std::string& end, databento::SType stype_in, databento::SType stype_out, std::uint64_t limit, const std::string& output_file) -> databento::DbnFileStore {
       return client.TimeseriesGetRangeToFile(dataset, databento::DateTimeRange<std::string>{start, end}, symbols, schema, stype_in, stype_out, limit, output_file);
+    })
+    .method("timeseries_get_range", [](databento::Historical& client, const std::string& dataset, const std::vector<std::string>& symbols, databento::Schema schema, const std::string& start, const std::string& end, databento::SType stype_in, databento::SType stype_out, std::uint64_t limit, jl_function_t* metadata_callback, jl_function_t* record_callback) {
+      client.TimeseriesGetRange(dataset, databento::DateTimeRange<std::string>{start, end}, symbols, schema, stype_in, stype_out, limit, 
+        [metadata_callback](databento::Metadata&& metadata) {
+          if (metadata_callback != nullptr) {
+              jl_call1(metadata_callback, jlcxx::box<databento::Metadata*>(&metadata));
+          }
+        }, 
+        [record_callback](const databento::Record& record) {
+          // Wrap record in Julia type and call callback
+          jl_value_t* res = jl_call1(record_callback, jlcxx::box<const databento::Record*>(&record));
+          // Check for exceptions
+          if (jl_exception_occurred()) {
+              jl_call2(jl_get_function(jl_base_module, "show"), jl_stderr_obj(), jl_exception_occurred());
+              return databento::KeepGoing::Stop;
+          }
+          return jlcxx::unbox<databento::KeepGoing>(res);
+        });
     });
 
   // Record
@@ -538,7 +566,22 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
     .method("ts_out", [](const databento::Metadata& m) -> bool { return m.ts_out; })
     .method("symbols", [](const databento::Metadata& m) -> std::vector<std::string> { return m.symbols; })
     .method("partial", [](const databento::Metadata& m) -> std::vector<std::string> { return m.partial; })
-    .method("not_found", [](const databento::Metadata& m) -> std::vector<std::string> { return m.not_found; });
+    .method("not_found", [](const databento::Metadata& m) -> std::vector<std::string> { return m.not_found; })
+    .method("create_symbol_map", [](const databento::Metadata& m) { return databento::TsSymbolMap{m}; });
+
+  // TsSymbolMap
+  ts_symbol_map.constructor<>()
+    .method("map_size", &databento::TsSymbolMap::Size)
+    .method("is_empty", &databento::TsSymbolMap::IsEmpty)
+    // Map At overloads for common types
+    .method("at_trade", [](const databento::TsSymbolMap& m, const databento::TradeMsg& rec) { return m.At(rec); })
+    .method("at_mbo", [](const databento::TsSymbolMap& m, const databento::MboMsg& rec) { return m.At(rec); })
+    .method("at_mbp1", [](const databento::TsSymbolMap& m, const databento::Mbp1Msg& rec) { return m.At(rec); })
+    .method("at_mbp10", [](const databento::TsSymbolMap& m, const databento::Mbp10Msg& rec) { return m.At(rec); })
+    .method("at_ohlcv", [](const databento::TsSymbolMap& m, const databento::OhlcvMsg& rec) { return m.At(rec); })
+    .method("at_instr_def", [](const databento::TsSymbolMap& m, const databento::InstrumentDefMsg& rec) { return m.At(rec); })
+    .method("at_status", [](const databento::TsSymbolMap& m, const databento::StatusMsg& rec) { return m.At(rec); })
+    .method("at_stat", [](const databento::TsSymbolMap& m, const databento::StatMsg& rec) { return m.At(rec); });
 
   // DbnFileStore
   dbn_file_store.constructor<const std::string&>()
