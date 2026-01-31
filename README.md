@@ -4,10 +4,11 @@ High-performance Julia bindings for the [databento-cpp](https://github.com/datab
 
 ## Features
 
-**Phase 1: Core Enums** ✅
-- Full mapping of `Schema`, `Encoding`, `SType`, and `Dataset` enums
-- Zero-copy enum representation using `add_bits`
-- String conversion and pretty-printing support
+- **Core Enums** ✅: Full mapping of `Schema`, `Encoding`, `SType`, `Dataset`, `Publisher`, `RType`, `Action`, and `Side`.
+- **Data Records** ✅: Support for `MboMsg`, `TradeMsg`, `Mbp1Msg`, `Mbp10Msg`, `InstrumentDefMsg`, and `ImbalanceMsg`.
+- **Historical Client** ✅: Full metadata queries, symbology resolution, and historical data downloads.
+- **DBN Reader** ✅: High-performance DBN file reading with metadata support.
+- **Zero-Copy Design**: Direct access to C++ market data records from Julia.
 
 ## Installation
 
@@ -70,32 +71,37 @@ println(encoding)  # Encoding::dbn
 - [x] Dataset enum mapping (GlbxMdp3, XnasItch, etc.)
 - [x] Unit tests for all enums
 
-### Phase 2: Data Record Protocol (In Progress)
-- [ ] Fixed-width string handling
-- [ ] RecordHeader mapping
-- [ ] MboMsg (Market by Order)
-- [ ] TradeMsg (Trades)
-- [ ] InstrumentDefMsg (Reference Data)
-- [ ] ImbalanceMsg
-- [ ] ToString() methods for structs
+### Phase 2: Data Record Protocol ✅
+- [x] Fixed-width string handling (via C++ mapping)
+- [x] RecordHeader mapping
+- [x] MboMsg (Market by Order)
+- [x] TradeMsg (Trades)
+- [x] Mbp1Msg and Mbp10Msg
+- [x] InstrumentDefMsg (Reference Data)
+- [x] ImbalanceMsg
+- [x] ToString() methods for structs
 
-### Phase 3: Historical Client
-- [ ] Historical client wrapper
-- [ ] Builder pattern (SetKeyFromEnv, SetDataset, SetOutputFormat)
-- [ ] Exception handling
+### Phase 3: Historical Client ✅
+- [x] Historical client wrapper
+- [x] Builder pattern (SetKeyFromEnv, SetKey)
+- [x] Metadata queries (ListDatasets, ListSchemas, ListFields)
+- [x] Exception handling
 
-### Phase 4: Fetching Data
-- [ ] DBN Reader
-- [ ] Record Iterator
-- [ ] Julia Iterator interface (Base.iterate)
+### Phase 4: Fetching Data & DBN Reader ✅
+- [x] DBN File Reader (DbnFileStore)
+- [x] Record access and header parsing
+- [x] Metadata retrieval from DBN files
+- [x] Timeseries range queries to file
 
-### Phase 5: Reference Data & Symbology
-- [ ] Symbology resolution
-- [ ] GetFields() for metadata
+### Phase 5: Reference Data & Symbology ✅
+- [x] Symbology resolution (symbology_resolve)
+- [x] Instrument definitions mapping
+- [x] Field detail metadata
 
-### Phase 6: Tables.jl Integration
-- [ ] Tables.rows and Tables.columns interfaces
-- [ ] Zero-copy DataFrame construction
+### Phase 6: Tables.jl Integration ✅
+- [x] Tables.rows and Tables.columns interfaces
+- [x] Zero-copy DataFrame construction
+- [x] Base.iterate for Record streams
 
 ## Architecture
 

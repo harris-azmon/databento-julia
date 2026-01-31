@@ -55,4 +55,6 @@ verify_build/
 # OS files
 .DS_Store
 Thumbs.db
-deps/
+deps/include/
+deps/lib/
+deps/share/
