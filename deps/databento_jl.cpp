@@ -55,6 +55,9 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.add_bits<databento::InstrumentClass>("InstrumentClass", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::MatchAlgorithm>("MatchAlgorithm", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatusAction>("StatusAction", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::StatusReason>("StatusReason", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::TradingEvent>("TradingEvent", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::TriState>("TriState", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatType>("StatType", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatUpdateAction>("StatUpdateAction", jlcxx::julia_type("CppEnum"));
 
@@ -232,6 +235,13 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.method("to_string_action", [](databento::Action a) { return std::string(databento::ToString(a)); });
   mod.method("to_string_side", [](databento::Side s) { return std::string(databento::ToString(s)); });
   mod.method("to_string_instrument_class", [](databento::InstrumentClass i) { return std::string(databento::ToString(i)); });
+  mod.method("to_string_match_algorithm", [](databento::MatchAlgorithm m) { return std::string(databento::ToString(m)); });
+  mod.method("to_string_status_action", [](databento::StatusAction s) { return std::string(databento::ToString(s)); });
+  mod.method("to_string_status_reason", [](databento::StatusReason s) { return std::string(databento::ToString(s)); });
+  mod.method("to_string_trading_event", [](databento::TradingEvent t) { return std::string(databento::ToString(t)); });
+  mod.method("to_string_tri_state", [](databento::TriState t) { return std::string(databento::ToString(t)); });
+  mod.method("to_string_stat_type", [](databento::StatType s) { return std::string(databento::ToString(s)); });
+  mod.method("to_string_stat_update_action", [](databento::StatUpdateAction s) { return std::string(databento::ToString(s)); });
 
   // FlagSet
   flag_set.method("is_last", [](const databento::FlagSet& f) { return f.IsLast(); });
@@ -312,6 +322,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mbp1_msg.method("ts_in_delta", [](const databento::Mbp1Msg& m) { return m.ts_in_delta; });
   mbp1_msg.method("sequence", [](const databento::Mbp1Msg& m) { return m.sequence; });
   mbp1_msg.method("index_ts", [](const databento::Mbp1Msg& m) { return m.IndexTs(); });
+  mbp1_msg.method("level", [](const databento::Mbp1Msg& m, std::size_t i) { return m.levels.at(i); });
   mbp1_msg.method("to_string", [](const databento::Mbp1Msg& m) -> std::string { return databento::ToString(m); });
 
   // Mbp10Msg
@@ -326,6 +337,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mbp10_msg.method("ts_in_delta", [](const databento::Mbp10Msg& m) { return m.ts_in_delta; });
   mbp10_msg.method("sequence", [](const databento::Mbp10Msg& m) { return m.sequence; });
   mbp10_msg.method("index_ts", [](const databento::Mbp10Msg& m) { return m.IndexTs(); });
+  mbp10_msg.method("level", [](const databento::Mbp10Msg& m, std::size_t i) { return m.levels.at(i); });
   mbp10_msg.method("to_string", [](const databento::Mbp10Msg& m) -> std::string { return databento::ToString(m); });
 
   // InstrumentDefMsg
@@ -436,7 +448,28 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   bbo_msg.method("flags", [](const databento::BboMsg& m) { return m.flags; });
   bbo_msg.method("ts_recv", [](const databento::BboMsg& m) { return m.ts_recv; });
   bbo_msg.method("sequence", [](const databento::BboMsg& m) { return m.sequence; });
+  bbo_msg.method("level", [](const databento::BboMsg& m, std::size_t i) { return m.levels.at(i); });
   bbo_msg.method("to_string", [](const databento::BboMsg& m) -> std::string { return databento::ToString(m); });
+
+  // Cmbp1Msg
+  cmbp1_msg.method("hd", [](const databento::Cmbp1Msg& m) { return m.hd; });
+  cmbp1_msg.method("price", [](const databento::Cmbp1Msg& m) { return m.price; });
+  cmbp1_msg.method("size", [](const databento::Cmbp1Msg& m) { return m.size; });
+  cmbp1_msg.method("action", [](const databento::Cmbp1Msg& m) { return m.action; });
+  cmbp1_msg.method("side", [](const databento::Cmbp1Msg& m) { return m.side; });
+  cmbp1_msg.method("flags", [](const databento::Cmbp1Msg& m) { return m.flags; });
+  cmbp1_msg.method("ts_recv", [](const databento::Cmbp1Msg& m) { return m.ts_recv; });
+  cmbp1_msg.method("ts_in_delta", [](const databento::Cmbp1Msg& m) { return m.ts_in_delta; });
+  cmbp1_msg.method("level", [](const databento::Cmbp1Msg& m, std::size_t i) { return m.levels.at(i); });
+
+  // CbboMsg
+  cbbo_msg.method("hd", [](const databento::CbboMsg& m) { return m.hd; });
+  cbbo_msg.method("price", [](const databento::CbboMsg& m) { return m.price; });
+  cbbo_msg.method("size", [](const databento::CbboMsg& m) { return m.size; });
+  cbbo_msg.method("side", [](const databento::CbboMsg& m) { return m.side; });
+  cbbo_msg.method("flags", [](const databento::CbboMsg& m) { return m.flags; });
+  cbbo_msg.method("ts_recv", [](const databento::CbboMsg& m) { return m.ts_recv; });
+  cbbo_msg.method("level", [](const databento::CbboMsg& m, std::size_t i) { return m.levels.at(i); });
 
   // ConsolidatedBidAskPair
   consolidated_bid_ask_pair.method("bid_px", [](const databento::ConsolidatedBidAskPair& p) { return p.bid_px; });

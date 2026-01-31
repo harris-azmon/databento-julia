@@ -23,6 +23,7 @@ end
 
 # Export enum types
 export Schema, Encoding, SType, Dataset, Publisher
+export StatusAction, StatusReason, TradingEvent, TriState, StatType, StatUpdateAction
 
 # Export Schema constants
 export MBO, MBP1, MBP10, TBBO, TRADES
@@ -69,32 +70,47 @@ export INSTRUMENT_CLASS_FX_SPOT, INSTRUMENT_CLASS_COMMODITY_SPOT
 
 # Export Types
 export DbnFileStore, Record, Metadata, RecordHeader, InstrumentClass, Action, Side, RType
-export MboMsg, TradeMsg, Mbp1Msg, Mbp10Msg, InstrumentDefMsg, ImbalanceMsg
+export MboMsg, TradeMsg, Mbp1Msg, Mbp10Msg, InstrumentDefMsg, ImbalanceMsg, TbboMsg
+
+const TbboMsg = Mbp1Msg
+export StatusMsg, StatMsg, ErrorMsg, SymbolMappingMsg, SystemMsg
+export BboMsg, Cmbp1Msg, CbboMsg, ConsolidatedBidAskPair
 export Historical, HistoricalBuilder
 
 # Export Methods
 export next_record, get_metadata, header, rtype
 export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, get_instrument_def_if, get_ohlcv_if
+export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
 export set_key!, set_key_from_env!, build
 export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
 export symbology_resolve, timeseries_get_range_to_file
+export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
 
-# Fix ambiguity for enum conversions
-Base.convert(::Type{Schema}, x::Schema) = x
-Base.convert(::Type{Encoding}, x::Encoding) = x
-Base.convert(::Type{SType}, x::SType) = x
-Base.convert(::Type{Dataset}, x::Dataset) = x
-Base.convert(::Type{Publisher}, x::Publisher) = x
-Base.convert(::Type{RType}, x::RType) = x
 Base.convert(::Type{Action}, x::Action) = x
 Base.convert(::Type{Side}, x::Side) = x
 Base.convert(::Type{InstrumentClass}, x::InstrumentClass) = x
+Base.convert(::Type{StatusAction}, x::StatusAction) = x
+Base.convert(::Type{StatusReason}, x::StatusReason) = x
+Base.convert(::Type{TradingEvent}, x::TradingEvent) = x
+Base.convert(::Type{TriState}, x::TriState) = x
+Base.convert(::Type{StatType}, x::StatType) = x
+Base.convert(::Type{StatUpdateAction}, x::StatUpdateAction) = x
 
 # Export to_string for enums
 export to_string
+to_string(s::Schema) = to_string_schema(s)
+to_string(e::Encoding) = to_string_encoding(e)
+to_string(s::SType) = to_string_stype(s)
 to_string(d::Dataset) = to_string_dataset(d)
 to_string(p::Publisher) = to_string_publisher(p)
 to_string(i::InstrumentClass) = to_string_instrument_class(i)
+to_string(m::MatchAlgorithm) = to_string_match_algorithm(m)
+to_string(s::StatusAction) = to_string_status_action(s)
+to_string(s::StatusReason) = to_string_status_reason(s)
+to_string(t::TradingEvent) = to_string_trading_event(t)
+to_string(t::TriState) = to_string_tri_state(t)
+to_string(s::StatType) = to_string_stat_type(s)
+to_string(s::StatUpdateAction) = to_string_stat_update_action(s)
 
 # Show methods for better REPL display
 Base.show(io::IO, s::Schema) = print(io, "Schema::", to_string(s))
@@ -103,6 +119,12 @@ Base.show(io::IO, s::SType) = print(io, "SType::", to_string(s))
 Base.show(io::IO, d::Dataset) = print(io, "Dataset::", to_string(d))
 Base.show(io::IO, p::Publisher) = print(io, "Publisher::", to_string(p))
 Base.show(io::IO, i::InstrumentClass) = print(io, "InstrumentClass::", to_string(i))
+Base.show(io::IO, s::StatusAction) = print(io, "StatusAction::", to_string(s))
+Base.show(io::IO, s::StatusReason) = print(io, "StatusReason::", to_string(s))
+Base.show(io::IO, t::TradingEvent) = print(io, "TradingEvent::", to_string(t))
+Base.show(io::IO, t::TriState) = print(io, "TriState::", to_string(t))
+Base.show(io::IO, s::StatType) = print(io, "StatType::", to_string(s))
+Base.show(io::IO, s::StatUpdateAction) = print(io, "StatUpdateAction::", to_string(s))
 
 # ============================================================================ 
 # Tables.jl Integration
@@ -115,11 +137,15 @@ Tables.rows(store::DbnFileStore) = store
 # Record as an AbstractRow
 Tables.istable(::Type{<:Record}) = true # A record can be seen as a single row table
 
-const TRADE_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :price, :size, :action, :side, :flags, :depth, :sequence)
+const TRADE_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :price, :size, :action, :side, :flags, :depth, :sequence, :bid_px, :ask_px)
 const MBO_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :order_id, :price, :size, :action, :side, :flags, :channel_id, :sequence)
 const OHLCV_COLUMNS = (:ts_event, :instrument_id, :publisher_id, :open, :high, :low, :close, :volume)
 const DEF_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :raw_symbol, :exchange, :asset, :security_type, :instrument_class, :expiration, :min_price_increment)
 const IMBALANCE_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :ref_price, :auction_time, :paired_qty, :total_imbalance_qty, :market_imbalance_qty, :unpaired_qty, :side)
+const STATUS_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :action, :reason, :trading_event, :is_trading, :is_quoting, :is_short_sell_restricted)
+const STAT_COLUMNS = (:ts_event, :ts_recv, :ts_ref, :instrument_id, :publisher_id, :price, :quantity, :stat_type, :update_action, :sequence)
+const BBO_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :price, :size, :side, :flags, :sequence, :bid_px, :ask_px)
+const CBBO_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :price, :size, :side, :flags, :bid_px, :ask_px, :bid_pb, :ask_pb)
 
 function Tables.columnnames(r::Record)
     rt = rtype(r)
@@ -131,6 +157,16 @@ function Tables.columnnames(r::Record)
         return DEF_COLUMNS
     elseif rt == RTYPE_IMBALANCE
         return IMBALANCE_COLUMNS
+    elseif rt == RTYPE_STATUS
+        return STATUS_COLUMNS
+    elseif rt == RTYPE_STATISTICS
+        return STAT_COLUMNS
+    elseif rt == RTYPE_BBO_1S || rt == RTYPE_BBO_1M
+        return BBO_COLUMNS
+    elseif rt == RTYPE_CBBO_1S || rt == RTYPE_CBBO_1M
+        return CBBO_COLUMNS
+    elseif rt == RTYPE_CMBP1 || rt == RTYPE_TCBBO
+        return CBBO_COLUMNS # Consolidated MBP uses same columns as CBBO
     elseif rt == RTYPE_OHLCV_1S || rt == RTYPE_OHLCV_1M || rt == RTYPE_OHLCV_1H || rt == RTYPE_OHLCV_1D
         return OHLCV_COLUMNS
     end
@@ -154,7 +190,14 @@ function Tables.getcolumn(r::Record, nm::Symbol)
     
     # MBP and Trades
     if rt == RTYPE_MBP0 || rt == RTYPE_MBP1 || rt == RTYPE_MBP10
-        msg_ptr = get_trade_if(r)
+        msg_ptr = if rt == RTYPE_MBP0
+            get_trade_if(r)
+        elseif rt == RTYPE_MBP1
+            get_mbp1_if(r)
+        else
+            get_mbp10_if(r)
+        end
+
         if msg_ptr != C_NULL
             msg = msg_ptr[]
             if nm == :ts_recv; return time_since_epoch(ts_recv(msg))
@@ -165,6 +208,12 @@ function Tables.getcolumn(r::Record, nm::Symbol)
             elseif nm == :flags; return flags(msg)
             elseif nm == :depth; return depth(msg)
             elseif nm == :sequence; return sequence(msg)
+            elseif nm == :bid_px || nm == :ask_px
+                if rt == RTYPE_MBP1 || rt == RTYPE_MBP10
+                    # Level 0 is the top of book
+                    l = level(msg, 0)
+                    return nm == :bid_px ? bid_px(l) : ask_px(l)
+                end
             end
         end
     
@@ -214,6 +263,77 @@ function Tables.getcolumn(r::Record, nm::Symbol)
             elseif nm == :market_imbalance_qty; return market_imbalance_qty(msg)
             elseif nm == :unpaired_qty; return unpaired_qty(msg)
             elseif nm == :side; return side(msg)
+            end
+        end
+
+    # Status
+    elseif rt == RTYPE_STATUS
+        msg_ptr = get_status_if(r)
+        if msg_ptr != C_NULL
+            msg = msg_ptr[]
+            if nm == :ts_recv; return time_since_epoch(ts_recv(msg))
+            elseif nm == :action; return action(msg)
+            elseif nm == :reason; return reason(msg)
+            elseif nm == :trading_event; return trading_event(msg)
+            elseif nm == :is_trading; return is_trading(msg)
+            elseif nm == :is_quoting; return is_quoting(msg)
+            elseif nm == :is_short_sell_restricted; return is_short_sell_restricted(msg)
+            end
+        end
+
+    # Statistics
+    elseif rt == RTYPE_STATISTICS
+        msg_ptr = get_stat_if(r)
+        if msg_ptr != C_NULL
+            msg = msg_ptr[]
+            if nm == :ts_recv; return time_since_epoch(ts_recv(msg))
+            elseif nm == :ts_ref; return time_since_epoch(ts_ref(msg))
+            elseif nm == :price; return price(msg)
+            elseif nm == :quantity; return quantity(msg)
+            elseif nm == :stat_type; return stat_type(msg)
+            elseif nm == :update_action; return update_action(msg)
+            elseif nm == :sequence; return sequence(msg)
+            end
+        end
+
+    # BBO
+    elseif rt == RTYPE_BBO_1S || rt == RTYPE_BBO_1M
+        msg_ptr = get_bbo_if(r)
+        if msg_ptr != C_NULL
+            msg = msg_ptr[]
+            if nm == :ts_recv; return time_since_epoch(ts_recv(msg))
+            elseif nm == :price; return price(msg)
+            elseif nm == :size; return size(msg)
+            elseif nm == :side; return side(msg)
+            elseif nm == :flags; return flags(msg)
+            elseif nm == :sequence; return sequence(msg)
+            elseif nm == :bid_px || nm == :ask_px
+                l = level(msg, 0)
+                return nm == :bid_px ? bid_px(l) : ask_px(l)
+            end
+        end
+
+    # CBBO and CMBP1
+    elseif rt == RTYPE_CBBO_1S || rt == RTYPE_CBBO_1M || rt == RTYPE_CMBP1 || rt == RTYPE_TCBBO
+        msg_ptr = if rt == RTYPE_CMBP1 || rt == RTYPE_TCBBO
+            get_cmbp1_if(r)
+        else
+            get_cbbo_if(r)
+        end
+        if msg_ptr != C_NULL
+            msg = msg_ptr[]
+            if nm == :ts_recv; return time_since_epoch(ts_recv(msg))
+            elseif nm == :price; return price(msg)
+            elseif nm == :size; return size(msg)
+            elseif nm == :side; return side(msg)
+            elseif nm == :flags; return flags(msg)
+            elseif nm == :bid_px || nm == :ask_px || nm == :bid_pb || nm == :ask_pb
+                l = level(msg, 0)
+                if nm == :bid_px; return bid_px(l)
+                elseif nm == :ask_px; return ask_px(l)
+                elseif nm == :bid_pb; return bid_pb(l)
+                elseif nm == :ask_pb; return ask_pb(l)
+                end
             end
         end
 
