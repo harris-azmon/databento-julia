@@ -12,11 +12,11 @@ using Databento
         @test isdefined(Databento, :DEFINITION)
 
         # Test string conversion
-        @test string(MBO) == "mbo"
-        @test string(MBP1) == "mbp-1"
-        @test string(TRADES) == "trades"
-        @test string(DEFINITION) == "definition"
-        @test string(IMBALANCE) == "imbalance"
+        @test to_string(MBO) == "mbo"
+        @test to_string(MBP1) == "mbp-1"
+        @test to_string(TRADES) == "trades"
+        @test to_string(DEFINITION) == "definition"
+        @test to_string(IMBALANCE) == "imbalance"
 
         # Test REPL display
         io = IOBuffer()
@@ -32,9 +32,9 @@ using Databento
         @test isdefined(Databento, :JSON)
 
         # Test string conversion
-        @test string(DBN) == "dbn"
-        @test string(CSV) == "csv"
-        @test string(JSON) == "json"
+        @test to_string(DBN) == "dbn"
+        @test to_string(CSV) == "csv"
+        @test to_string(JSON) == "json"
 
         # Test REPL display
         io = IOBuffer()
@@ -51,10 +51,10 @@ using Databento
         @test isdefined(Databento, :CONTINUOUS)
 
         # Test string conversion
-        @test string(RAW_SYMBOL) == "raw_symbol"
-        @test string(INSTRUMENT_ID) == "instrument_id"
-        @test string(PARENT) == "parent"
-        @test string(CONTINUOUS) == "continuous"
+        @test to_string(RAW_SYMBOL) == "raw_symbol"
+        @test to_string(INSTRUMENT_ID) == "instrument_id"
+        @test to_string(PARENT) == "parent"
+        @test to_string(CONTINUOUS) == "continuous"
 
         # Test REPL display
         io = IOBuffer()
@@ -70,10 +70,10 @@ using Databento
         @test isdefined(Databento, :OPRA_PILLAR)
 
         # Test string conversion
-        @test string(GLBX_MDP3) == "GLBX.MDP3"
-        @test string(XNAS_ITCH) == "XNAS.ITCH"
-        @test string(OPRA_PILLAR) == "OPRA.PILLAR"
-        @test string(DBEQ_BASIC) == "DBEQ.BASIC"
+        @test to_string(GLBX_MDP3) == "GLBX.MDP3"
+        @test to_string(XNAS_ITCH) == "XNAS.ITCH"
+        @test to_string(OPRA_PILLAR) == "OPRA.PILLAR"
+        @test to_string(DBEQ_BASIC) == "DBEQ.BASIC"
 
         # Test REPL display
         io = IOBuffer()

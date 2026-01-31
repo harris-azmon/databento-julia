@@ -16,7 +16,7 @@ function __init__()
     @initcxx
 end
 
-# ============================================================================
+# ============================================================================ 
 # PHASE 1: Core Enums
 # ============================================================================ 
 
@@ -60,19 +60,26 @@ export ACTION_ADD, ACTION_CLEAR, ACTION_NONE
 # Export Side constants
 export SIDE_ASK, SIDE_BID, SIDE_NONE
 
-# Extend Base.string for our enums to enable pretty printing
-# This will call the C++ ToString functions we exposed
-Base.string(s::Schema) = string(s)
-Base.string(e::Encoding) = string(e)
-Base.string(s::SType) = string(s)
-Base.string(d::Dataset) = string(d)
-Base.string(p::Publisher) = string(p)
+# Fix ambiguity for enum conversions
+Base.convert(::Type{Schema}, x::Schema) = x
+Base.convert(::Type{Encoding}, x::Encoding) = x
+Base.convert(::Type{SType}, x::SType) = x
+Base.convert(::Type{Dataset}, x::Dataset) = x
+Base.convert(::Type{Publisher}, x::Publisher) = x
 
-# Add show methods for better REPL display
-Base.show(io::IO, s::Schema) = print(io, "Schema::", string(s))
-Base.show(io::IO, e::Encoding) = print(io, "Encoding::", string(e))
-Base.show(io::IO, s::SType) = print(io, "SType::", string(s))
-Base.show(io::IO, d::Dataset) = print(io, "Dataset::", string(d))
-Base.show(io::IO, p::Publisher) = print(io, "Publisher::", string(p))
+# Export to_string for enums
+export to_string
+to_string(s::Schema) = to_string_schema(s)
+to_string(e::Encoding) = to_string_encoding(e)
+to_string(s::SType) = to_string_stype(s)
+to_string(d::Dataset) = to_string_dataset(d)
+to_string(p::Publisher) = to_string_publisher(p)
+
+# Show methods for better REPL display
+Base.show(io::IO, s::Schema) = print(io, "Schema::", to_string(s))
+Base.show(io::IO, e::Encoding) = print(io, "Encoding::", to_string(e))
+Base.show(io::IO, s::SType) = print(io, "SType::", to_string(s))
+Base.show(io::IO, d::Dataset) = print(io, "Dataset::", to_string(d))
+Base.show(io::IO, p::Publisher) = print(io, "Publisher::", to_string(p))
 
 end # module
