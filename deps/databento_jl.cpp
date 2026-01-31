@@ -47,6 +47,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   // Register enums first as they are often used in other types
   mod.add_bits<databento::Schema>("Schema", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::Encoding>("Encoding", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::FeedMode>("FeedMode", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::SType>("SType", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::Dataset>("Dataset", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::Publisher>("Publisher", jlcxx::julia_type("CppEnum"));
@@ -62,6 +63,11 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.add_bits<databento::StatType>("StatType", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::StatUpdateAction>("StatUpdateAction", jlcxx::julia_type("CppEnum"));
   mod.add_bits<databento::KeepGoing>("KeepGoing", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::Compression>("Compression", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::SplitDuration>("SplitDuration", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::Delivery>("Delivery", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::JobState>("JobState", jlcxx::julia_type("CppEnum"));
+  mod.add_bits<databento::DatasetCondition>("DatasetCondition", jlcxx::julia_type("CppEnum"));
 
   // Register structs and classes
   auto flag_set = mod.add_type<databento::FlagSet>("FlagSet");
@@ -88,10 +94,27 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   auto cbbo_msg = mod.add_type<databento::CbboMsg>("CbboMsg");
 
   auto field_detail = mod.add_type<databento::FieldDetail>("FieldDetail");
+  auto publisher_detail = mod.add_type<databento::PublisherDetail>("PublisherDetail");
+  auto unit_prices_for_mode = mod.add_type<databento::UnitPricesForMode>("UnitPricesForMode");
+  auto dataset_condition_detail = mod.add_type<databento::DatasetConditionDetail>("DatasetConditionDetail");
+  auto dataset_range = mod.add_type<databento::DatasetRange>("DatasetRange");
   
   // Register vectors used in methods
   mod.add_type<std::vector<databento::Schema>>("SchemaVector");
   mod.add_type<std::vector<databento::FieldDetail>>("FieldDetailVector");
+  mod.add_type<std::vector<databento::PublisherDetail>>("PublisherDetailVector")
+    .method("map_size", &std::vector<databento::PublisherDetail>::size)
+    .method("get_item", [](const std::vector<databento::PublisherDetail>& v, std::size_t i) { return v.at(i); });
+  mod.add_type<std::vector<databento::UnitPricesForMode>>("UnitPricesForModeVector")
+    .method("map_size", &std::vector<databento::UnitPricesForMode>::size)
+    .method("get_item", [](const std::vector<databento::UnitPricesForMode>& v, std::size_t i) { return v.at(i); });
+  mod.add_type<std::vector<databento::DatasetConditionDetail>>("DatasetConditionDetailVector")
+    .method("map_size", &std::vector<databento::DatasetConditionDetail>::size)
+    .method("get_item", [](const std::vector<databento::DatasetConditionDetail>& v, std::size_t i) { return v.at(i); });
+  mod.add_type<std::pair<databento::Schema, double>>("SchemaDoublePair");
+  mod.add_type<std::vector<std::pair<databento::Schema, double>>>("SchemaDoublePairVector")
+    .method("map_size", &std::vector<std::pair<databento::Schema, double>>::size)
+    .method("get_item", [](const std::vector<std::pair<databento::Schema, double>>& v, std::size_t i) { return v.at(i); });
 
   auto symbology_resolution = mod.add_type<databento::SymbologyResolution>("SymbologyResolution");
   auto historical = mod.add_type<databento::Historical>("Historical");
@@ -100,6 +123,8 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   auto metadata = mod.add_type<databento::Metadata>("Metadata");
   auto dbn_file_store = mod.add_type<databento::DbnFileStore>("DbnFileStore");
   auto ts_symbol_map = mod.add_type<databento::TsSymbolMap>("TsSymbolMap");
+  auto batch_job = mod.add_type<databento::BatchJob>("BatchJob");
+  auto batch_file_desc = mod.add_type<databento::BatchFileDesc>("BatchFileDesc");
 
   // ============================================================================
   // ENUM CONSTANTS
@@ -130,6 +155,11 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.set_const("DBN", databento::Encoding::Dbn);
   mod.set_const("CSV", databento::Encoding::Csv);
   mod.set_const("JSON", databento::Encoding::Json);
+
+  // FeedMode
+  mod.set_const("HISTORICAL", databento::FeedMode::Historical);
+  mod.set_const("HISTORICAL_STREAMING", databento::FeedMode::HistoricalStreaming);
+  mod.set_const("LIVE", databento::FeedMode::Live);
 
   // SType
   mod.set_const("INSTRUMENT_ID", databento::SType::InstrumentId);
@@ -229,8 +259,19 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   // ============================================================================
 
   // ToString methods
+  mod.add_type<std::vector<databento::BatchJob>>("BatchJobVector")
+    .method("map_size", &std::vector<databento::BatchJob>::size)
+    .method("get_item", [](const std::vector<databento::BatchJob>& v, std::size_t i) { return v.at(i); });
+  mod.add_type<std::vector<databento::BatchFileDesc>>("BatchFileDescVector")
+    .method("map_size", &std::vector<databento::BatchFileDesc>::size)
+    .method("get_item", [](const std::vector<databento::BatchFileDesc>& v, std::size_t i) { return v.at(i); });
+  mod.add_type<std::vector<databento::JobState>>("JobStateVector")
+    .method("map_size", &std::vector<databento::JobState>::size)
+    .method("get_item", [](const std::vector<databento::JobState>& v, std::size_t i) { return v.at(i); });
+
   mod.method("to_string_schema", [](databento::Schema s) { return std::string(databento::ToString(s)); });
   mod.method("to_string_encoding", [](databento::Encoding e) { return std::string(databento::ToString(e)); });
+  mod.method("to_string_feed_mode", [](databento::FeedMode m) { return std::string(databento::ToString(m)); });
   mod.method("to_string_stype", [](databento::SType s) { return std::string(databento::ToString(s)); });
   mod.method("to_string_dataset", [](databento::Dataset d) { return std::string(databento::ToString(d)); });
   mod.method("to_string_publisher", [](databento::Publisher p) { return std::string(databento::ToString(p)); });
@@ -248,6 +289,11 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
   mod.method("to_string_keep_going", [](databento::KeepGoing k) { 
     return k == databento::KeepGoing::Continue ? std::string("Continue") : std::string("Stop");
   });
+  mod.method("to_string_compression", [](databento::Compression c) { return std::string(databento::ToString(c)); });
+  mod.method("to_string_split_duration", [](databento::SplitDuration d) { return std::string(databento::ToString(d)); });
+  mod.method("to_string_delivery", [](databento::Delivery d) { return std::string(databento::ToString(d)); });
+  mod.method("to_string_job_state", [](databento::JobState s) { return std::string(databento::ToString(s)); });
+  mod.method("to_string_dataset_condition", [](databento::DatasetCondition c) { return std::string(databento::ToString(c)); });
 
   // KeepGoing Constants
   mod.set_const("KEEP_GOING_CONTINUE", databento::KeepGoing::Continue);
@@ -526,6 +572,42 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
           }
           return jlcxx::unbox<databento::KeepGoing>(res);
         });
+    })
+    .method("batch_submit_job", [](databento::Historical& client, const std::string& dataset, const std::vector<std::string>& symbols, databento::Schema schema, const std::string& start, const std::string& end, databento::Encoding encoding, databento::Compression compression, bool pretty_px, bool pretty_ts, bool map_symbols, bool split_symbols, databento::SplitDuration split_duration, std::uint64_t split_size, databento::Delivery delivery, databento::SType stype_in, databento::SType stype_out, std::uint64_t limit) {
+      return client.BatchSubmitJob(dataset, symbols, schema, databento::DateTimeRange<std::string>{start, end}, encoding, compression, pretty_px, pretty_ts, map_symbols, split_symbols, split_duration, split_size, delivery, stype_in, stype_out, limit);
+    })
+    .method("batch_list_jobs", [](databento::Historical& client) {
+      return client.BatchListJobs();
+    })
+    .method("batch_list_jobs", [](databento::Historical& client, const std::vector<databento::JobState>& states, const std::string& since) {
+      return client.BatchListJobs(states, since);
+    })
+    .method("batch_list_files", [](databento::Historical& client, const std::string& job_id) {
+      return client.BatchListFiles(job_id);
+    })
+    .method("batch_download", [](databento::Historical& client, const std::string& output_dir, const std::string& job_id) {
+      return client.BatchDownload(output_dir, job_id);
+    })
+    .method("metadata_list_publishers", [](databento::Historical& client) {
+      return client.MetadataListPublishers();
+    })
+    .method("metadata_list_unit_prices", [](databento::Historical& client, const std::string& dataset) {
+      return client.MetadataListUnitPrices(dataset);
+    })
+    .method("metadata_get_dataset_condition", [](databento::Historical& client, const std::string& dataset) {
+      return client.MetadataGetDatasetCondition(dataset);
+    })
+    .method("metadata_get_dataset_range", [](databento::Historical& client, const std::string& dataset) {
+      return client.MetadataGetDatasetRange(dataset);
+    })
+    .method("metadata_get_record_count", [](databento::Historical& client, const std::string& dataset, const std::string& start, const std::string& end, const std::vector<std::string>& symbols, databento::Schema schema, databento::SType stype_in, std::uint64_t limit) {
+      return client.MetadataGetRecordCount(dataset, databento::DateTimeRange<std::string>{start, end}, symbols, schema, stype_in, limit);
+    })
+    .method("metadata_get_billable_size", [](databento::Historical& client, const std::string& dataset, const std::string& start, const std::string& end, const std::vector<std::string>& symbols, databento::Schema schema, databento::SType stype_in, std::uint64_t limit) {
+      return client.MetadataGetBillableSize(dataset, databento::DateTimeRange<std::string>{start, end}, symbols, schema, stype_in, limit);
+    })
+    .method("metadata_get_cost", [](databento::Historical& client, const std::string& dataset, const std::string& start, const std::string& end, const std::vector<std::string>& symbols, databento::Schema schema, databento::FeedMode mode, databento::SType stype_in, std::uint64_t limit) {
+      return client.MetadataGetCost(dataset, databento::DateTimeRange<std::string>{start, end}, symbols, schema, mode, stype_in, limit);
     });
 
   // Record
@@ -568,6 +650,75 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
     .method("partial", [](const databento::Metadata& m) -> std::vector<std::string> { return m.partial; })
     .method("not_found", [](const databento::Metadata& m) -> std::vector<std::string> { return m.not_found; })
     .method("create_symbol_map", [](const databento::Metadata& m) { return databento::TsSymbolMap{m}; });
+
+  // BatchJob
+  batch_job.method("id", [](const databento::BatchJob& j) { return j.id; })
+    .method("user_id", [](const databento::BatchJob& j) { return j.user_id; })
+    .method("bill_id", [](const databento::BatchJob& j) { return j.bill_id; })
+    .method("cost_usd", [](const databento::BatchJob& j) { return j.cost_usd; })
+    .method("dataset", [](const databento::BatchJob& j) { return j.dataset; })
+    .method("symbols", [](const databento::BatchJob& j) -> std::vector<std::string> { return j.symbols; })
+    .method("stype_in", [](const databento::BatchJob& j) { return j.stype_in; })
+    .method("stype_out", [](const databento::BatchJob& j) { return j.stype_out; })
+    .method("schema", [](const databento::BatchJob& j) { return j.schema; })
+    .method("start", [](const databento::BatchJob& j) { return j.start; })
+    .method("end", [](const databento::BatchJob& j) { return j.end; })
+    .method("limit", [](const databento::BatchJob& j) { return j.limit; })
+    .method("encoding", [](const databento::BatchJob& j) { return j.encoding; })
+    .method("compression", [](const databento::BatchJob& j) { return j.compression; })
+    .method("pretty_px", [](const databento::BatchJob& j) { return j.pretty_px; })
+    .method("pretty_ts", [](const databento::BatchJob& j) { return j.pretty_ts; })
+    .method("map_symbols", [](const databento::BatchJob& j) { return j.map_symbols; })
+    .method("split_duration", [](const databento::BatchJob& j) { return j.split_duration; })
+    .method("split_size", [](const databento::BatchJob& j) { return j.split_size; })
+    .method("split_symbols", [](const databento::BatchJob& j) { return j.split_symbols; })
+    .method("delivery", [](const databento::BatchJob& j) { return j.delivery; })
+    .method("record_count", [](const databento::BatchJob& j) { return j.record_count; })
+    .method("billed_size", [](const databento::BatchJob& j) { return j.billed_size; })
+    .method("actual_size", [](const databento::BatchJob& j) { return j.actual_size; })
+    .method("package_size", [](const databento::BatchJob& j) { return j.package_size; })
+    .method("state", [](const databento::BatchJob& j) { return j.state; })
+    .method("ts_received", [](const databento::BatchJob& j) { return j.ts_received; })
+    .method("ts_queued", [](const databento::BatchJob& j) { return j.ts_queued; })
+    .method("ts_process_start", [](const databento::BatchJob& j) { return j.ts_process_start; })
+    .method("ts_process_done", [](const databento::BatchJob& j) { return j.ts_process_done; })
+    .method("ts_expiration", [](const databento::BatchJob& j) { return j.ts_expiration; });
+
+  // BatchFileDesc
+  batch_file_desc.method("filename", [](const databento::BatchFileDesc& f) { return f.filename; })
+    .method("size", [](const databento::BatchFileDesc& f) { return f.size; })
+    .method("hash", [](const databento::BatchFileDesc& f) { return f.hash; })
+    .method("https_url", [](const databento::BatchFileDesc& f) { return f.https_url; })
+    .method("ftp_url", [](const databento::BatchFileDesc& f) { return f.ftp_url; });
+
+  // PublisherDetail
+  publisher_detail.method("publisher_id", [](const databento::PublisherDetail& p) { return p.publisher_id; })
+    .method("dataset", [](const databento::PublisherDetail& p) { return p.dataset; })
+    .method("venue", [](const databento::PublisherDetail& p) { return p.venue; })
+    .method("description", [](const databento::PublisherDetail& p) { return p.description; });
+
+  // UnitPricesForMode
+  unit_prices_for_mode.method("mode", [](const databento::UnitPricesForMode& u) { return u.mode; })
+    .method("unit_prices", [](const databento::UnitPricesForMode& u) {
+      // Return as a vector of pairs or something similar? 
+      // C++ std::map<Schema, double> is hard to map directly to Julia Dict.
+      // For now, let's just return it as a vector of pairs if possible, or just skip it if too complex.
+      // Let's try returning a vector of pairs of (Schema, double)
+      std::vector<std::pair<databento::Schema, double>> res;
+      for (const auto& kv : u.unit_prices) {
+          res.push_back(kv);
+      }
+      return res;
+    });
+
+  // DatasetConditionDetail
+  dataset_condition_detail.method("date", [](const databento::DatasetConditionDetail& d) { return d.date; })
+    .method("condition", [](const databento::DatasetConditionDetail& d) { return d.condition; })
+    .method("last_modified_date", [](const databento::DatasetConditionDetail& d) { return d.last_modified_date; });
+
+  // DatasetRange
+  dataset_range.method("start", [](const databento::DatasetRange& d) { return d.start; })
+    .method("stop", [](const databento::DatasetRange& d) { return d.end; });
 
   // TsSymbolMap
   ts_symbol_map.constructor<>()

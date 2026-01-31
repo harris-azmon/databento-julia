@@ -22,8 +22,9 @@ end
 # ============================================================================ 
 
 # Export enum types
-export Schema, Encoding, SType, Dataset, Publisher
+export Schema, Encoding, FeedMode, SType, Dataset, Publisher
 export StatusAction, StatusReason, TradingEvent, TriState, StatType, StatUpdateAction
+export Compression, SplitDuration, Delivery, JobState, DatasetCondition
 
 # Export Schema constants
 export MBO, MBP1, MBP10, TBBO, TRADES
@@ -33,6 +34,9 @@ export CMBP1, CBBO_1S, CBBO_1M, TCBBO, BBO_1S, BBO_1M
 
 # Export Encoding constants
 export DBN, CSV, JSON
+
+# Export FeedMode constants
+export HISTORICAL, HISTORICAL_STREAMING, LIVE
 
 # Export SType constants
 export INSTRUMENT_ID, RAW_SYMBOL, CONTINUOUS, PARENT
@@ -74,24 +78,20 @@ export MboMsg, TradeMsg, Mbp1Msg, Mbp10Msg, InstrumentDefMsg, ImbalanceMsg, Tbbo
 export StatusMsg, StatMsg, ErrorMsg, SymbolMappingMsg, SystemMsg
 export BboMsg, Cmbp1Msg, CbboMsg, ConsolidatedBidAskPair
 export TsSymbolMap
+export BatchJob, BatchFileDesc
+export PublisherDetail, UnitPricesForMode, DatasetConditionDetail, DatasetRange
 export Historical, HistoricalBuilder
 
 # Export Methods
-export next_record, get_metadata, header, rtype
+export next_record, get_metadata, header, rtype, start, stop
 export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, get_instrument_def_if, get_ohlcv_if
 export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
 export set_key!, set_key_from_env!, build
 export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
+export metadata_list_publishers, metadata_list_unit_prices, metadata_get_dataset_condition, metadata_get_dataset_range
+export metadata_get_record_count, metadata_get_billable_size, metadata_get_cost
 export symbology_resolve, timeseries_get_range_to_file, timeseries_get_range
-export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
-export KEEP_GOING_CONTINUE, KEEP_GOING_STOP
-# Export Methods
-export next_record, get_metadata, header, rtype
-export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, get_instrument_def_if, get_ohlcv_if
-export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
-export set_key!, set_key_from_env!, build
-export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
-export symbology_resolve, timeseries_get_range_to_file, timeseries_get_range
+export batch_submit_job, batch_list_jobs, batch_list_files, batch_download
 export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
 export KEEP_GOING_CONTINUE, KEEP_GOING_STOP
 export create_symbol_map, at, is_empty
@@ -110,6 +110,7 @@ Base.convert(::Type{StatUpdateAction}, x::StatUpdateAction) = x
 export to_string
 to_string(s::Schema) = to_string_schema(s)
 to_string(e::Encoding) = to_string_encoding(e)
+to_string(m::FeedMode) = to_string_feed_mode(m)
 to_string(s::SType) = to_string_stype(s)
 to_string(d::Dataset) = to_string_dataset(d)
 to_string(p::Publisher) = to_string_publisher(p)
@@ -121,11 +122,31 @@ to_string(t::TradingEvent) = to_string_trading_event(t)
 to_string(t::TriState) = to_string_tri_state(t)
 to_string(s::StatType) = to_string_stat_type(s)
 to_string(s::StatUpdateAction) = to_string_stat_update_action(s)
+to_string(c::Compression) = to_string_compression(c)
+to_string(d::SplitDuration) = to_string_split_duration(d)
+to_string(d::Delivery) = to_string_delivery(d)
+to_string(s::JobState) = to_string_job_state(s)
+to_string(c::DatasetCondition) = to_string_dataset_condition(c)
 
 # Show methods for better REPL display
 Base.show(io::IO, s::Schema) = print(io, "Schema::", to_string(s))
-# ...
+Base.show(io::IO, e::Encoding) = print(io, "Encoding::", to_string(e))
+Base.show(io::IO, m::FeedMode) = print(io, "FeedMode::", to_string(m))
+Base.show(io::IO, s::SType) = print(io, "SType::", to_string(s))
+Base.show(io::IO, d::Dataset) = print(io, "Dataset::", to_string(d))
+Base.show(io::IO, p::Publisher) = print(io, "Publisher::", to_string(p))
+Base.show(io::IO, i::InstrumentClass) = print(io, "InstrumentClass::", to_string(i))
+Base.show(io::IO, s::StatusAction) = print(io, "StatusAction::", to_string(s))
+Base.show(io::IO, s::StatusReason) = print(io, "StatusReason::", to_string(s))
+Base.show(io::IO, t::TradingEvent) = print(io, "TradingEvent::", to_string(t))
+Base.show(io::IO, t::TriState) = print(io, "TriState::", to_string(t))
+Base.show(io::IO, s::StatType) = print(io, "StatType::", to_string(s))
 Base.show(io::IO, s::StatUpdateAction) = print(io, "StatUpdateAction::", to_string(s))
+Base.show(io::IO, c::Compression) = print(io, "Compression::", to_string(c))
+Base.show(io::IO, d::SplitDuration) = print(io, "SplitDuration::", to_string(d))
+Base.show(io::IO, d::Delivery) = print(io, "Delivery::", to_string(d))
+Base.show(io::IO, s::JobState) = print(io, "JobState::", to_string(s))
+Base.show(io::IO, c::DatasetCondition) = print(io, "DatasetCondition::", to_string(c))
 
 # TsSymbolMap dispatch
 Base.size(m::TsSymbolMap) = (Int(map_size(m)),)
@@ -166,6 +187,51 @@ function at(m::TsSymbolMap, r::Record)
 end
 
 # ============================================================================
+# Batch API wrappers
+# ============================================================================
+
+function batch_submit_job(client::Historical, dataset::String, symbols::Vector{String}, schema::Schema, start::String, stop::String;
+    stype_in::SType=RAW_SYMBOL,
+    stype_out::SType=INSTRUMENT_ID,
+    limit::Integer=0,
+    encoding::Encoding=DBN,
+    compression::Compression=Compression.None,
+    pretty_px::Bool=false,
+    pretty_ts::Bool=false,
+    map_symbols::Bool=false,
+    split_symbols::Bool=false,
+    split_duration::SplitDuration=SplitDuration.None,
+    split_size::Integer=0,
+    delivery::Delivery=Delivery.Download)
+    
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    
+    return batch_submit_job(client, dataset, symbols_vec, schema, start, stop, encoding, compression, pretty_px, pretty_ts, map_symbols, split_symbols, split_duration, UInt64(split_size), delivery, stype_in, stype_out, UInt64(limit))
+end
+
+function metadata_get_record_count(client::Historical, dataset::String, symbols::Vector{String}, schema::Schema, start::String, stop::String;
+    stype_in::SType=RAW_SYMBOL,
+    limit::Integer=0)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return metadata_get_record_count(client, dataset, start, stop, symbols_vec, schema, stype_in, UInt64(limit))
+end
+
+function metadata_get_billable_size(client::Historical, dataset::String, symbols::Vector{String}, schema::Schema, start::String, stop::String;
+    stype_in::SType=RAW_SYMBOL,
+    limit::Integer=0)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return metadata_get_billable_size(client, dataset, start, stop, symbols_vec, schema, stype_in, UInt64(limit))
+end
+
+function metadata_get_cost(client::Historical, dataset::String, symbols::Vector{String}, schema::Schema, start::String, stop::String;
+    mode::FeedMode=HISTORICAL_STREAMING,
+    stype_in::SType=RAW_SYMBOL,
+    limit::Integer=0)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return metadata_get_cost(client, dataset, start, stop, symbols_vec, schema, mode, stype_in, UInt64(limit))
+end
+
+# ============================================================================
 # Tables.jl Integration
 # ============================================================================
 Tables.istable(::Type{<:DbnFileStore}) = true
@@ -174,6 +240,119 @@ Tables.rows(store::DbnFileStore) = store
 
 # Record as an AbstractRow
 Tables.istable(::Type{<:Record}) = true # A record can be seen as a single row table
+
+# BatchJob and BatchFileDesc as tables
+Tables.istable(::Type{BatchJobVector}) = true
+Tables.rowaccess(::Type{BatchJobVector}) = true
+Tables.rows(v::BatchJobVector) = v
+Tables.istable(::Type{BatchJobVectorAllocated}) = true
+Tables.rowaccess(::Type{BatchJobVectorAllocated}) = true
+Tables.rows(v::BatchJobVectorAllocated) = v
+
+Tables.istable(::Type{BatchFileDescVector}) = true
+Tables.rowaccess(::Type{BatchFileDescVector}) = true
+Tables.rows(v::BatchFileDescVector) = v
+Tables.istable(::Type{BatchFileDescVectorAllocated}) = true
+Tables.rowaccess(::Type{BatchFileDescVectorAllocated}) = true
+Tables.rows(v::BatchFileDescVectorAllocated) = v
+
+Tables.istable(::Type{PublisherDetailVector}) = true
+Tables.rowaccess(::Type{PublisherDetailVector}) = true
+Tables.rows(v::PublisherDetailVector) = v
+Tables.istable(::Type{PublisherDetailVectorAllocated}) = true
+Tables.rowaccess(::Type{PublisherDetailVectorAllocated}) = true
+Tables.rows(v::PublisherDetailVectorAllocated) = v
+
+Tables.istable(::Type{DatasetConditionDetailVector}) = true
+Tables.rowaccess(::Type{DatasetConditionDetailVector}) = true
+Tables.rows(v::DatasetConditionDetailVector) = v
+Tables.istable(::Type{DatasetConditionDetailVectorAllocated}) = true
+Tables.rowaccess(::Type{DatasetConditionDetailVectorAllocated}) = true
+Tables.rows(v::DatasetConditionDetailVectorAllocated) = v
+
+# show methods for metadata structs
+Base.show(io::IO, p::PublisherDetail) = print(io, "PublisherDetail(", publisher_id(p), ", \"", String(dataset(p)), "\", \"", String(venue(p)), "\")")
+function Base.show(io::IO, d::DatasetConditionDetail)
+    print(io, "DatasetConditionDetail(\"", String(date(d)), "\", ", condition(d), ")")
+end
+function Base.show(io::IO, d::DatasetRange)
+    print(io, "DatasetRange(\"", String(start(d)), "\", \"", String(stop(d)), "\")")
+end
+Base.show(io::IO, u::UnitPricesForMode) = print(io, "UnitPricesForMode(", mode(u), ", ", length(unit_prices(u)), " prices)")
+
+# Iteration for vectors
+for T in (BatchJobVector, BatchJobVectorAllocated, BatchFileDescVector, BatchFileDescVectorAllocated,
+          PublisherDetailVector, PublisherDetailVectorAllocated,
+          UnitPricesForModeVector, UnitPricesForModeVectorAllocated,
+          DatasetConditionDetailVector, DatasetConditionDetailVectorAllocated,
+          SchemaDoublePairVector, SchemaDoublePairVectorAllocated)
+    @eval Base.iterate(v::$T, state=1) = state > Base.length(v) ? nothing : (v[state], state + 1)
+    @eval Base.getindex(v::$T, i::Integer) = get_item(v, i - 1)
+    @eval Base.length(v::$T) = Int(map_size(v))
+    
+    if T <: Union{PublisherDetailVector, PublisherDetailVectorAllocated}
+        @eval Base.eltype(::Type{$T}) = PublisherDetail
+    elseif T <: Union{UnitPricesForModeVector, UnitPricesForModeVectorAllocated}
+        @eval Base.eltype(::Type{$T}) = UnitPricesForMode
+    elseif T <: Union{DatasetConditionDetailVector, DatasetConditionDetailVectorAllocated}
+        @eval Base.eltype(::Type{$T}) = DatasetConditionDetail
+    elseif T <: Union{SchemaDoublePairVector, SchemaDoublePairVectorAllocated}
+        @eval Base.eltype(::Type{$T}) = SchemaDoublePair
+    elseif T <: Union{BatchJobVector, BatchJobVectorAllocated}
+        @eval Base.eltype(::Type{$T}) = BatchJob
+    else
+        @eval Base.eltype(::Type{$T}) = BatchFileDesc
+    end
+end
+
+const BATCH_JOB_COLUMNS = (:id, :state, :dataset, :schema, :cost_usd, :record_count, :billed_size, :ts_received, :ts_process_done)
+const BATCH_FILE_COLUMNS = (:filename, :size, :hash, :https_url)
+const PUBLISHER_COLUMNS = (:publisher_id, :dataset, :venue, :description)
+const CONDITION_COLUMNS = (:date, :condition, :last_modified_date)
+
+Tables.columnnames(::PublisherDetail) = PUBLISHER_COLUMNS
+function Tables.getcolumn(p::PublisherDetail, nm::Symbol)
+    if nm == :publisher_id; return publisher_id(p)
+    elseif nm == :dataset; return String(dataset(p))
+    elseif nm == :venue; return String(venue(p))
+    elseif nm == :description; return String(description(p))
+    end
+    return nothing
+end
+
+Tables.columnnames(::DatasetConditionDetail) = CONDITION_COLUMNS
+function Tables.getcolumn(d::DatasetConditionDetail, nm::Symbol)
+    if nm == :date; return String(date(d))
+    elseif nm == :condition; return condition(d)
+    elseif nm == :last_modified_date; return String(last_modified_date(d))
+    end
+    return nothing
+end
+
+Tables.columnnames(::BatchJob) = BATCH_JOB_COLUMNS
+function Tables.getcolumn(j::BatchJob, nm::Symbol)
+    if nm == :id; return String(id(j))
+    elseif nm == :state; return state(j)
+    elseif nm == :dataset; return String(dataset(j))
+    elseif nm == :schema; return schema(j)
+    elseif nm == :cost_usd; return cost_usd(j)
+    elseif nm == :record_count; return record_count(j)
+    elseif nm == :billed_size; return billed_size(j)
+    elseif nm == :ts_received; return String(ts_received(j))
+    elseif nm == :ts_process_done; return String(ts_process_done(j))
+    end
+    return nothing
+end
+
+Tables.columnnames(::BatchFileDesc) = BATCH_FILE_COLUMNS
+function Tables.getcolumn(f::BatchFileDesc, nm::Symbol)
+    if nm == :filename; return String(filename(f))
+    elseif nm == :size; return size(f)
+    elseif nm == :hash; return String(hash(f))
+    elseif nm == :https_url; return String(https_url(f))
+    end
+    return nothing
+end
 
 const TRADE_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :price, :size, :action, :side, :flags, :depth, :sequence, :bid_px, :ask_px)
 const MBO_COLUMNS = (:ts_event, :ts_recv, :instrument_id, :publisher_id, :order_id, :price, :size, :action, :side, :flags, :channel_id, :sequence)
