@@ -38,6 +38,9 @@ export DBN, CSV, JSON
 # Export FeedMode constants
 export HISTORICAL, HISTORICAL_STREAMING, LIVE
 
+# Export ExceptionAction constants
+export RESTART, STOP
+
 # Export SType constants
 export INSTRUMENT_ID, RAW_SYMBOL, CONTINUOUS, PARENT
 export NASDAQ_SYMBOL, CMS_SYMBOL
@@ -81,15 +84,17 @@ export TsSymbolMap
 export BatchJob, BatchFileDesc
 export PublisherDetail, UnitPricesForMode, DatasetConditionDetail, DatasetRange
 export Historical, HistoricalBuilder
+export LiveBuilder, LiveBlocking, LiveThreaded
 
 # Export Methods
 export next_record, get_metadata, header, rtype, start, stop
 export get_mbo_if, get_trade_if, get_mbp1_if, get_mbp10_if, get_imbalance_if, get_instrument_def_if, get_ohlcv_if
 export get_status_if, get_stat_if, get_error_if, get_symbol_mapping_if, get_system_if, get_bbo_if, get_cmbp1_if, get_cbbo_if
-export set_key!, set_key_from_env!, build
+export set_key!, set_key_from_env!, set_dataset!, set_send_ts_out!, set_upgrade_policy!, build
 export metadata_list_datasets, metadata_list_schemas, metadata_list_fields
 export metadata_list_publishers, metadata_list_unit_prices, metadata_get_dataset_condition, metadata_get_dataset_range
 export metadata_get_record_count, metadata_get_billable_size, metadata_get_cost
+export subscribe, subscribe_with_snapshot, build_blocking, build_threaded, block_for_stop
 export symbology_resolve, timeseries_get_range_to_file, timeseries_get_range
 export batch_submit_job, batch_list_jobs, batch_list_files, batch_download
 export level, bid_px, ask_px, bid_sz, ask_sz, bid_ct, ask_ct
@@ -127,6 +132,8 @@ to_string(d::SplitDuration) = to_string_split_duration(d)
 to_string(d::Delivery) = to_string_delivery(d)
 to_string(s::JobState) = to_string_job_state(s)
 to_string(c::DatasetCondition) = to_string_dataset_condition(c)
+to_string(p::VersionUpgradePolicy) = to_string_version_upgrade_policy(p)
+to_string(a::ExceptionAction) = to_string_exception_action(a)
 
 # Show methods for better REPL display
 Base.show(io::IO, s::Schema) = print(io, "Schema::", to_string(s))
@@ -147,6 +154,8 @@ Base.show(io::IO, d::SplitDuration) = print(io, "SplitDuration::", to_string(d))
 Base.show(io::IO, d::Delivery) = print(io, "Delivery::", to_string(d))
 Base.show(io::IO, s::JobState) = print(io, "JobState::", to_string(s))
 Base.show(io::IO, c::DatasetCondition) = print(io, "DatasetCondition::", to_string(c))
+Base.show(io::IO, p::VersionUpgradePolicy) = print(io, "VersionUpgradePolicy::", to_string(p))
+Base.show(io::IO, a::ExceptionAction) = print(io, "ExceptionAction::", to_string(a)) # Assuming to_string exists or I'll add it
 
 # TsSymbolMap dispatch
 Base.size(m::TsSymbolMap) = (Int(map_size(m)),)
@@ -230,6 +239,29 @@ function metadata_get_cost(client::Historical, dataset::String, symbols::Vector{
     symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
     return metadata_get_cost(client, dataset, start, stop, symbols_vec, schema, mode, stype_in, UInt64(limit))
 end
+
+# Live Client wrappers
+function subscribe(client::Union{LiveBlocking, LiveThreaded}, symbols::Vector{String}, schema::Schema, stype_in::SType=RAW_SYMBOL)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return subscribe(client, symbols_vec, schema, stype_in)
+end
+
+function subscribe(client::Union{LiveBlocking, LiveThreaded}, symbols::Vector{String}, schema::Schema, start::String, stype_in::SType=RAW_SYMBOL)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return subscribe(client, symbols_vec, schema, stype_in, start)
+end
+
+function subscribe_with_snapshot(client::Union{LiveBlocking, LiveThreaded}, symbols::Vector{String}, schema::Schema, stype_in::SType=RAW_SYMBOL)
+    symbols_vec = CxxWrap.StdLib.StdVector(CxxWrap.StdLib.StdString.(symbols))
+    return subscribe_with_snapshot(client, symbols_vec, schema, stype_in)
+end
+
+function start(client::LiveThreaded, metadata_callback::Function, record_callback::Function)
+    return start(client, metadata_callback, record_callback)
+end
+
+# Iteration for vectors
+
 
 # ============================================================================
 # Tables.jl Integration
