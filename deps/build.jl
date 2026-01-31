@@ -1,4 +1,5 @@
 using CxxWrap
+using Libdl
 
 # Get the path to the CxxWrap prefix (where JlCxx is installed)
 prefix = CxxWrap.prefix_path()
@@ -10,12 +11,31 @@ build_dir = joinpath(src_dir, "build")
 # Create build directory if it doesn't exist
 mkpath(build_dir)
 
-# Configure with CMake
+# Define Julia paths dynamically
+julia_executable = joinpath(Sys.BINDIR, "julia")
+julia_root = dirname(Sys.BINDIR)
+julia_include_dirs = joinpath(julia_root, "include", "julia")
+julia_library = ""
+if Sys.islinux()
+    julia_library = joinpath(julia_root, "lib", "libjulia.so")
+elseif Sys.isapple()
+    julia_library = joinpath(julia_root, "lib", "libjulia.dylib")
+elseif Sys.iswindows()
+    julia_library = joinpath(julia_root, "bin", "libjulia.dll")
+end
+
+@info "Julia paths:" julia_executable julia_root julia_include_dirs julia_library
+
+# Configure with CMake, passing Julia paths explicitly.
 run(`cmake -DCMAKE_BUILD_TYPE=Release
-           -DCMAKE_PREFIX_PATH=$prefix
-           -DCMAKE_INSTALL_PREFIX=$src_dir
-           -S $src_dir
-           -B $build_dir`)
+           -DCMAKE_PREFIX_PATH="$prefix;$julia_root"
+           -DJULIA_EXECUTABLE="$julia_executable"
+           -DJULIA_LIBRARY="$julia_library"
+           -DJULIA_ROOT="$julia_root"
+           -DJULIA_INCLUDE_DIRS="$julia_include_dirs"
+           -DCMAKE_INSTALL_PREFIX="$src_dir"
+           -S "$src_dir"
+           -B "$build_dir"`)
 
 # Build the library
 run(`cmake --build $build_dir --config Release`)
