@@ -58,3 +58,4 @@ Thumbs.db
 deps/include/
 deps/lib/
 deps/share/
+temp_lib/
