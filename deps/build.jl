@@ -8,6 +8,10 @@ prefix = CxxWrap.prefix_path()
 src_dir = @__DIR__
 build_dir = joinpath(src_dir, "build")
 
+# Unset conflicting environment variables for the duration of this script
+delete!(ENV, "JULIA_BINDIR")
+delete!(ENV, "JULIA_DEPOT_PATH")
+
 # Create build directory if it doesn't exist
 mkpath(build_dir)
 

@@ -614,7 +614,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod)
     .method("subscribe_with_snapshot", [](databento::LiveThreaded& c, const std::vector<std::string>& symbols, databento::Schema schema, databento::SType stype_in) {
       c.SubscribeWithSnapshot(symbols, schema, stype_in);
     })
-    .method("start", [](databento::LiveThreaded& client, jl_function_t* metadata_callback, jl_function_t* record_callback) {
+    .method("start", [](databento::LiveThreaded& client, jl_value_t* metadata_callback, jl_value_t* record_callback) {
       client.Start(
         [metadata_callback](databento::Metadata&& metadata) {
           if (metadata_callback != nullptr) {
