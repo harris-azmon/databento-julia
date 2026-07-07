@@ -33,6 +33,10 @@ target_link_libraries(databento_jl
     databento::databento
 )
 
+if(WIN32)
+  target_link_libraries(databento_jl PRIVATE ws2_32 crypt32)
+endif()
+
 # Install the library
 install(TARGETS databento_jl
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
