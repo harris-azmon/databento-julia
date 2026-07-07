@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if(APPLE)
+  add_compile_definitions(CPPHTTPLIB_DISABLE_MACOSX_AUTOMATIC_ROOT_CERTIFICATES)
+endif()
+
 # Find JlCxx for C++ wrapper support. This is provided by CxxWrap.jl
 # and its location is passed via CMAKE_PREFIX_PATH in build.jl.
 find_package(JlCxx REQUIRED)
